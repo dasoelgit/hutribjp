@@ -995,9 +995,6 @@ export default function App() {
         t.knockout?.rounds?.forEach(r=>r.forEach(collect));
       }
     });
-    
-    return out;
-  };
  console.log('allBracketMatches output:', out);
   return out;
 };
