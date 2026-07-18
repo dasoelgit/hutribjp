@@ -102,7 +102,17 @@ async function fetchBadmintonMatches() {
   try {
     const { data, error } = await badmintonSupabase
       .from('matches')
-      .select('id, team1_players, team2_players, team1_score, team2_score, status, scheduled_date, scheduled_time, tournament_matches!inner(stage, round)')
+      .select(`
+        id,
+        team1_players->>0->>'name' as team1_name,
+        team2_players->>0->>'name' as team2_name,
+        team1_score,
+        team2_score,
+        status,
+        scheduled_date,
+        scheduled_time,
+        tournament_matches!inner(stage, round)
+      `)
       .order('scheduled_date', { ascending: true })
       .order('scheduled_time', { ascending: true });
 
@@ -119,32 +129,24 @@ async function fetchBadmintonMatches() {
     console.log('Raw Badminton data:', data);
 
     return data.map(match => {
-     let pA = 'TBD';
-let pB = 'TBD';
+      let pA = match.team1_name || 'TBD';
+      let pB = match.team2_name || 'TBD';
 
-// Combine all player names from team1
-if (match.team1_players && Array.isArray(match.team1_players) && match.team1_players.length > 0) {
-  const names = match.team1_players.map(p => p.name || '').filter(n => n);
-  pA = names.length > 0 ? names.join(' / ') : 'TBD';
-}
-
-// Combine all player names from team2
-if (match.team2_players && Array.isArray(match.team2_players) && match.team2_players.length > 0) {
-  const names = match.team2_players.map(p => p.name || '').filter(n => n);
-  pB = names.length > 0 ? names.join(' / ') : 'TBD';
-}
       let status = 'scheduled';
       if (match.status === 'completed' || match.status === 'finished') status = 'finished';
       else if (match.status === 'in_progress' || match.status === 'live') status = 'live';
-      else if (match.status === 'scheduled') status = 'scheduled';
+      else if (match.status === 'scheduled' || match.status === 'pending') status = 'scheduled';
 
       let roundLabel = '';
-      if (match.tournament_matches) {
-        const { stage, round } = match.tournament_matches;
-        if (stage === 'group' && round === 1) roundLabel = 'Group Stage';
-        else if (stage === 'knockout' && round === 1) roundLabel = 'Final';
-        else if (stage === 'knockout' && round === 2) roundLabel = 'Semifinal';
-        else roundLabel = `${stage || ''} Round ${round || ''}`;
+      if (match.tournament_matches && match.tournament_matches.length > 0) {
+        const tm = match.tournament_matches[0];
+        if (tm) {
+          const { stage, round } = tm;
+          if (stage === 'group' && round === 1) roundLabel = 'Group Stage';
+          else if (stage === 'knockout' && round === 1) roundLabel = 'Final';
+          else if (stage === 'knockout' && round === 2) roundLabel = 'Semifinal';
+          else roundLabel = `${stage || ''} Round ${round || ''}`;
+        }
       }
 
       return {
@@ -168,7 +170,6 @@ if (match.team2_players && Array.isArray(match.team2_players) && match.team2_pla
     return [];
   }
 }
-
 // ─── STATUS CONFIG ──────────────────────────────────────────────────────────
 const STATUS = {
   scheduled:{ text:"#1E40AF", bg:"#EFF6FF", border:"#BFDBFE", label:"Scheduled" },
