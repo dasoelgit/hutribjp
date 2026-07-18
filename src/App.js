@@ -40,8 +40,6 @@ const SPORT_META = {
 };
 const SPORTS = Object.keys(SPORT_META);
 
-const CLUB_COLORS = ["#DC2626","#2563EB","#16A34A","#D97706","#7C3AED","#EA580C","#0891B2","#475569"];
-
 // ─── INITIAL DATA ──────────────────────────────────────────────────────────
 const CLUBS_INIT = [
   { id:1, name:"RT 01", color:"#DC2626", flag:"01" },
