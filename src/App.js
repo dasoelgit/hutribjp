@@ -34,15 +34,6 @@ const SPORT_META = {
 };
 const SPORTS = Object.keys(SPORT_META);
 
-const PROG_CATS = [
-  { key:"press",    label:"Press Conference",  emoji:"🎙️", color:"#6D28D9", bg:"#F5F3FF", border:"#DDD6FE" },
-  { key:"meeting",  label:"Technical Meeting", emoji:"📋", color:"#1D4ED8", bg:"#EFF6FF", border:"#BFDBFE" },
-  { key:"ceremony", label:"Ceremony",          emoji:"🏅", color:"#92400E", bg:"#FFFBEB", border:"#FDE68A" },
-  { key:"training", label:"Training Session",  emoji:"💪", color:"#065F46", bg:"#F0FDF4", border:"#A7F3D0" },
-  { key:"social",   label:"Social Event",      emoji:"🎉", color:"#9D174D", bg:"#FDF2F8", border:"#FBCFE8" },
-  { key:"other",    label:"Other",             emoji:"📌", color:"#374151", bg:"#F9FAFB", border:"#E5E7EB" },
-];
-
 // ─── INITIAL DATA ──────────────────────────────────────────────────────────
 const CLUBS_INIT = [
   { id:1, name:"RT 01", color:"#DC2626", flag:"01" },
@@ -120,7 +111,7 @@ const SportBadge = ({sport}) => {
   const meta=SPORT_META[sport]??{emoji:"🏅"};
   const typeColors={singles:["#F5F3FF","#6D28D9"],doubles:["#FFF7ED","#C2410C"]};
   const [bg,color]=typeColors[meta.matchType]??["#F9FAFB","#374151"];
-  return <span style={{display:"inline-flex",alignItems:"center",gap:4,padding:"2px 9px",borderRadius:99,fontSize:11,fontWeight:700,background:bg,color,color,border:`1px solid ${color}33`}}>{meta.emoji} {sport}</span>;
+  return <span style={{display:"inline-flex",alignItems:"center",gap:4,padding:"2px 9px",borderRadius:99,fontSize:11,fontWeight:700,background:bg,color:color,border:`1px solid ${color}33`}}>{meta.emoji} {sport}</span>;
 };
 
 // ─── LOGIN MODAL ────────────────────────────────────────────────────────────
