@@ -118,7 +118,7 @@ async function fetchBadmintonMatches() {
 
     console.log('Raw Badminton data:', data);
 
-    return data.map(match => {
+    const mapped = data.map(match => {
       let pA = 'TBD';
       let pB = 'TBD';
 
@@ -127,7 +127,6 @@ async function fetchBadmintonMatches() {
           .filter(p => p && p.name)
           .map(p => p.name);
         pA = names.length > 0 ? names.join(' / ') : 'TBD';
-        console.log(`team1: ${JSON.stringify(names)}`);  // ← ADD THIS
       }
 
       if (match.team2_players && Array.isArray(match.team2_players) && match.team2_players.length > 0) {
@@ -135,12 +134,8 @@ async function fetchBadmintonMatches() {
           .filter(p => p && p.name)
           .map(p => p.name);
         pB = names.length > 0 ? names.join(' / ') : 'TBD';
-        console.log(`team2: ${JSON.stringify(names)}`);  // ← ADD THIS
       }
 
-      console.log(`Match ${match.id}: pA = "${pA}", pB = "${pB}"`);
-
-      // ... rest of the code
       let status = 'scheduled';
       if (match.status === 'completed' || match.status === 'finished') status = 'finished';
       else if (match.status === 'in_progress' || match.status === 'live') status = 'live';
@@ -174,6 +169,9 @@ async function fetchBadmintonMatches() {
         _raw: match
       };
     });
+
+    console.log('Mapped Badminton data:', mapped);
+    return mapped;
   } catch (err) {
     console.error('Error fetching Badminton:', err);
     return [];
