@@ -907,7 +907,6 @@ export default function App() {
   const [pairs] = useState(PAIRS_INIT);
   const [programEvents, setProgramEvents] = useState(() => seedProgram());
   const [brackets] = useState({});
-  const [badmintonMatches, setBadmintonMatches] = useState([]);
 
   const [view, setView] = useState("schedule");
   const [officialTab, setOfficialTab] = useState("program");
