@@ -969,7 +969,12 @@ export default function App() {
   // ── Derive all matches from brackets ──────────────────────────────────────
   const allBracketMatches = () => {
     const out = [];
-    
+
+    console.log('badmintonMatches in allBracketMatches:', badmintonMatches);
+  
+  badmintonMatches.forEach(m => {
+    out.push({ ...m, kind: 'match' });
+  });
     // Add Badminton matches from Supabase
     badmintonMatches.forEach(m => {
       out.push({ ...m, kind: 'match' });
@@ -993,7 +998,9 @@ export default function App() {
     
     return out;
   };
-
+ console.log('allBracketMatches output:', out);
+  return out;
+};
   // ── Live ticker ────────────────────────────────────────────────────────────
   const liveNow = allBracketMatches().filter(m=>m.status==="live");
 
