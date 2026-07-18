@@ -119,17 +119,20 @@ async function fetchBadmintonMatches() {
     console.log('Raw Badminton data:', data);
 
     return data.map(match => {
-      let pA = 'TBD';
-      let pB = 'TBD';
-      
-      if (match.team1_players && Array.isArray(match.team1_players) && match.team1_players.length > 0) {
-        pA = match.team1_players[0]?.name || 'TBD';
-      }
-      
-      if (match.team2_players && Array.isArray(match.team2_players) && match.team2_players.length > 0) {
-        pB = match.team2_players[0]?.name || 'TBD';
-      }
+     let pA = 'TBD';
+let pB = 'TBD';
 
+// Combine all player names from team1
+if (match.team1_players && Array.isArray(match.team1_players) && match.team1_players.length > 0) {
+  const names = match.team1_players.map(p => p.name || '').filter(n => n);
+  pA = names.length > 0 ? names.join(' / ') : 'TBD';
+}
+
+// Combine all player names from team2
+if (match.team2_players && Array.isArray(match.team2_players) && match.team2_players.length > 0) {
+  const names = match.team2_players.map(p => p.name || '').filter(n => n);
+  pB = names.length > 0 ? names.join(' / ') : 'TBD';
+}
       let status = 'scheduled';
       if (match.status === 'completed' || match.status === 'finished') status = 'finished';
       else if (match.status === 'in_progress' || match.status === 'live') status = 'live';
