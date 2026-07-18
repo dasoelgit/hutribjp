@@ -119,7 +119,8 @@ async function fetchBadmintonMatches() {
     console.log('Raw Badminton data:', data);
 
     return data.map(match => {
-      // Join all player names with ' / '
+      // team1_players is already a JSON array like [{"id":"uuid","name":"Lilis"}, {"id":"uuid","name":"Diana"}]
+      // We can access it directly
       let pA = 'TBD';
       let pB = 'TBD';
 
@@ -137,13 +138,11 @@ async function fetchBadmintonMatches() {
         pB = names.length > 0 ? names.join(' / ') : 'TBD';
       }
 
-      // Map status
       let status = 'scheduled';
       if (match.status === 'completed' || match.status === 'finished') status = 'finished';
       else if (match.status === 'in_progress' || match.status === 'live') status = 'live';
       else if (match.status === 'scheduled' || match.status === 'pending') status = 'scheduled';
 
-      // Get round label from tournament_matches[0]
       let roundLabel = '';
       if (match.tournament_matches && Array.isArray(match.tournament_matches) && match.tournament_matches.length > 0) {
         const tm = match.tournament_matches[0];
