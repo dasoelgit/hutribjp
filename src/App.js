@@ -881,7 +881,6 @@ function MatchCard({ m, lookupParticipant }) {
       </div>
       {won&&<span style={{fontSize:14,flexShrink:0}}>🏆</span>}
     </div>;
-  };
 
   const Score = () => {
   // For Badminton, show direct score without "Set" label
@@ -930,7 +929,7 @@ function MatchCard({ m, lookupParticipant }) {
     </div>}
   </div>;
 };
-}
+
 // ─── MAIN APP ──────────────────────────────────────────────────────────────
 export default function App() {
   const [officialAccounts] = useState([ADMIN_ACCOUNT]);
