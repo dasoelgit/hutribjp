@@ -883,58 +883,53 @@ function MatchCard({ m, lookupParticipant }) {
     </div>;
   };
 
-  const Score=()=>{
-    if(m.status==="scheduled") return <div style={{color:C.faint,fontWeight:700,fontSize:18,textAlign:"center",padding:"0 12px"}}>vs</div>;
-    if(meta.scoringType==="chess"){
-      const label=res==="A"?"1 – 0":res==="B"?"0 – 1":"½ – ½";
-      return <div style={{textAlign:"center",padding:"0 12px"}}><div style={{fontSize:20,fontWeight:900,color:C.ink}}>{label}</div></div>;
+  const Score = () => {
+  // For Badminton, show direct score without "Set" label
+  if (m.sport === 'Badminton') {
+    if (m.status === 'scheduled' || m.scoreA === null || m.scoreB === null) {
+      return <div style={{color:C.faint,fontWeight:700,fontSize:18,textAlign:"center",padding:"0 12px"}}>vs</div>;
     }
-    if(meta.scoringType==="points"){
-      const sA=meta.scoringType==="points"&&m.sets?.length?m.sets[0].sA:setsA;
-      const sB=meta.scoringType==="points"&&m.sets?.length?m.sets[0].sB:setsB;
-      return <div style={{display:"flex",alignItems:"center",gap:6,padding:"0 8px"}}>
-        <span style={{fontSize:26,fontWeight:900,color:res==="A"?C.ink:C.muted}}>{sA}</span>
+    return (
+      <div style={{display:"flex",alignItems:"center",gap:6,padding:"0 8px"}}>
+        <span style={{fontSize:26,fontWeight:900,color:m.scoreA > m.scoreB ? C.ink : C.muted}}>
+          {m.scoreA}
+        </span>
         <span style={{color:C.faint,fontSize:16}}>–</span>
-        <span style={{fontSize:26,fontWeight:900,color:res==="B"?C.ink:C.muted}}>{sB}</span>
-      </div>;
-    }
-    return <div style={{display:"flex",flexDirection:"column",alignItems:"center",gap:3,padding:"0 8px"}}>
-      <div style={{display:"flex",alignItems:"center",gap:6}}>
-        <span style={{fontSize:24,fontWeight:900,color:res==="A"?C.ink:C.muted}}>{setsA}</span>
-        <span style={{color:C.faint,fontSize:14}}>–</span>
-        <span style={{fontSize:24,fontWeight:900,color:res==="B"?C.ink:C.muted}}>{setsB}</span>
+        <span style={{fontSize:26,fontWeight:900,color:m.scoreB > m.scoreA ? C.ink : C.muted}}>
+          {m.scoreB}
+        </span>
       </div>
-      {m.sets?.length>0&&<div style={{display:"flex",gap:4}}>
-        {m.sets.map((s,i)=><span key={i} style={{fontSize:10,color:C.muted,background:C.surface,borderRadius:4,padding:"1px 5px",border:`1px solid ${C.border}`}}>{s.sA}-{s.sB}</span>)}
-      </div>}
-    </div>;
-  };
+    );
+  }
 
-  return (
-    <div style={{background:C.white,border:`1.5px solid ${m.status==="live"?"#FECACA":C.border}`,borderRadius:12,padding:16,boxShadow:m.status==="live"?`0 0 0 3px ${C.redFaint},0 2px 8px rgba(139,0,0,0.08)`:"0 1px 3px rgba(0,0,0,0.04)"}}>
-      <div style={{display:"flex",gap:8,alignItems:"center",marginBottom:12,flexWrap:"wrap"}}>
-        <Pill status={m.status}/>
-        <SportBadge sport={m.sport}/>
-        {m.round&&<span style={{fontSize:11,color:C.muted,background:C.surface,border:`1px solid ${C.border}`,borderRadius:99,padding:"2px 8px"}}>{m.round}</span>}
-        <span style={{fontSize:11,color:C.muted,marginLeft:"auto"}}>📍 {m.venue}</span>
-      </div>
-      <div style={{display:"flex",alignItems:"center",gap:8}}>
-        <Name p={pA} side="A"/>
-        <Score/>
-        <div style={{display:"flex",alignItems:"center",gap:7,flex:1,minWidth:0,justifyContent:"flex-end"}}>
-          {res==="B"&&<span style={{fontSize:14,flexShrink:0}}>🏆</span>}
-          {pB&&!pB.isTbd?<>
-            <div style={{minWidth:0,textAlign:"right"}}>
-              <div style={{fontWeight:res==="B"?900:700,fontSize:14,color:res==="B"?C.ink:C.body,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{pB.name}</div>
-              {pB.club&&<div style={{fontSize:10,color:C.muted}}>{pB.club}</div>}
-            </div>
-            {pB.flag&&<FlagBadge flag={pB.flag} size={16}/>}
-          </>:<span style={{color:C.faint}}>TBD</span>}
-        </div>
-      </div>
+  // Other sports: Chess, Domino, etc.
+  if (m.status === "scheduled") {
+    return <div style={{color:C.faint,fontWeight:700,fontSize:18,textAlign:"center",padding:"0 12px"}}>vs</div>;
+  }
+  if (meta.scoringType === "chess") {
+    const label = res === "A" ? "1 – 0" : res === "B" ? "0 – 1" : "½ – ½";
+    return <div style={{textAlign:"center",padding:"0 12px"}}><div style={{fontSize:20,fontWeight:900,color:C.ink}}>{label}</div></div>;
+  }
+  if (meta.scoringType === "points") {
+    const sA = meta.scoringType === "points" && m.sets?.length ? m.sets[0].sA : setsA;
+    const sB = meta.scoringType === "points" && m.sets?.length ? m.sets[0].sB : setsB;
+    return <div style={{display:"flex",alignItems:"center",gap:6,padding:"0 8px"}}>
+      <span style={{fontSize:26,fontWeight:900,color:res === "A" ? C.ink : C.muted}}>{sA}</span>
+      <span style={{color:C.faint,fontSize:16}}>–</span>
+      <span style={{fontSize:26,fontWeight:900,color:res === "B" ? C.ink : C.muted}}>{sB}</span>
+    </div>;
+  }
+  return <div style={{display:"flex",flexDirection:"column",alignItems:"center",gap:3,padding:"0 8px"}}>
+    <div style={{display:"flex",alignItems:"center",gap:6}}>
+      <span style={{fontSize:24,fontWeight:900,color:res === "A" ? C.ink : C.muted}}>{setsA}</span>
+      <span style={{color:C.faint,fontSize:14}}>–</span>
+      <span style={{fontSize:24,fontWeight:900,color:res === "B" ? C.ink : C.muted}}>{setsB}</span>
     </div>
-  );
-}
+    {m.sets?.length > 0 && <div style={{display:"flex",gap:4}}>
+      {m.sets.map((s,i) => <span key={i} style={{fontSize:10,color:C.muted,background:C.surface,borderRadius:4,padding:"1px 5px",border:`1px solid ${C.border}`}}>{s.sA}-{s.sB}</span>)}
+    </div>}
+  </div>;
+};
 
 // ─── MAIN APP ──────────────────────────────────────────────────────────────
 export default function App() {
