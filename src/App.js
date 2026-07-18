@@ -959,12 +959,20 @@ export default function App() {
   const showToast = (msg, type="success") => { setToast({msg,type}); setTimeout(()=>setToast(null),3000); };
 
   const lookupParticipant = (sport, idOrObj) => {
-    if(idOrObj && typeof idOrObj === "object" && !idOrObj.isTbd) return idOrObj;
-    const id = typeof idOrObj === "object" ? idOrObj?.id : idOrObj;
-    const meta = SPORT_META[sport];
-    if(meta?.matchType==="doubles") return pairs.find(p=>p.id===id);
-    return players.find(p=>p.id===id);
-  };
+  // If it's already an object with name, return it
+  if(idOrObj && typeof idOrObj === "object" && !idOrObj.isTbd && idOrObj.name) return idOrObj;
+  
+  // For Badminton, the participant is already the full object
+  if(sport === 'Badminton' && idOrObj && typeof idOrObj === 'object') {
+    return idOrObj;
+  }
+  
+  // For other sports, look up by ID
+  const id = typeof idOrObj === "object" ? idOrObj?.id : idOrObj;
+  const meta = SPORT_META[sport];
+  if(meta?.matchType==="doubles") return pairs.find(p=>p.id===id);
+  return players.find(p=>p.id===id);
+};
 
   // ── Derive all matches from brackets ──────────────────────────────────────
   const allBracketMatches = () => {
