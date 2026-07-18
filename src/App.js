@@ -457,12 +457,13 @@ function TourneyMatchCard({ match, isOfficial, onClick }) {
 
 // ─── KNOCKOUT VIEW ──────────────────────────────────────────────────────────
 function KnockoutView({ rounds, sport, isOfficial, onMatchUpdate }) {
-  if (!rounds||rounds.length===0)
-    return <div style={{textAlign:"center",color:C.muted,padding:40,fontSize:14}}>No bracket yet.</div>;
+
   const [modal, setModal] = useState(null);
   const label=(i,t)=>i===t-1?"Final":i===t-2?"Semi-final":i===t-3?"Quarter-final":`Round ${i+1}`;
-
-  const updateMatch = (ri,pi,updated) => {
+  if (!rounds||rounds.length===0)
+    return <div style={{textAlign:"center",color:C.muted,padding:40,fontSize:14}}>No bracket yet.</div>;
+ 
+const updateMatch = (ri,pi,updated) => {
     const winner = updated.result==="A"?"A":updated.result==="B"?"B":null;
     const winnerObj = winner==="A"?updated.pA:winner==="B"?updated.pB:null;
     let newRounds = rounds.map((round,r)=>
