@@ -102,17 +102,7 @@ async function fetchBadmintonMatches() {
   try {
     const { data, error } = await badmintonSupabase
       .from('matches')
-      .select(`
-        id,
-        team1_players->>0->>'name' as team1_name,
-        team2_players->>0->>'name' as team2_name,
-        team1_score,
-        team2_score,
-        status,
-        scheduled_date,
-        scheduled_time,
-        tournament_matches!inner(stage, round)
-      `)
+      .select('id, team1_players, team2_players, team1_score, team2_score, status, scheduled_date, scheduled_time, tournament_matches(stage, round)')
       .order('scheduled_date', { ascending: true })
       .order('scheduled_time', { ascending: true });
 
@@ -129,16 +119,33 @@ async function fetchBadmintonMatches() {
     console.log('Raw Badminton data:', data);
 
     return data.map(match => {
-      let pA = match.team1_name || 'TBD';
-      let pB = match.team2_name || 'TBD';
+      // Join all player names with ' / '
+      let pA = 'TBD';
+      let pB = 'TBD';
 
+      if (match.team1_players && Array.isArray(match.team1_players) && match.team1_players.length > 0) {
+        const names = match.team1_players
+          .filter(p => p && p.name)
+          .map(p => p.name);
+        pA = names.length > 0 ? names.join(' / ') : 'TBD';
+      }
+
+      if (match.team2_players && Array.isArray(match.team2_players) && match.team2_players.length > 0) {
+        const names = match.team2_players
+          .filter(p => p && p.name)
+          .map(p => p.name);
+        pB = names.length > 0 ? names.join(' / ') : 'TBD';
+      }
+
+      // Map status
       let status = 'scheduled';
       if (match.status === 'completed' || match.status === 'finished') status = 'finished';
       else if (match.status === 'in_progress' || match.status === 'live') status = 'live';
       else if (match.status === 'scheduled' || match.status === 'pending') status = 'scheduled';
 
+      // Get round label from tournament_matches[0]
       let roundLabel = '';
-      if (match.tournament_matches && match.tournament_matches.length > 0) {
+      if (match.tournament_matches && Array.isArray(match.tournament_matches) && match.tournament_matches.length > 0) {
         const tm = match.tournament_matches[0];
         if (tm) {
           const { stage, round } = tm;
