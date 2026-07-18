@@ -902,7 +902,7 @@ function MatchCard({ m, lookupParticipant }) {
     );
   }
 
-  // Other sports: Chess, Domino, etc.
+  // For other sports
   if (m.status === "scheduled") {
     return <div style={{color:C.faint,fontWeight:700,fontSize:18,textAlign:"center",padding:"0 12px"}}>vs</div>;
   }
@@ -930,7 +930,6 @@ function MatchCard({ m, lookupParticipant }) {
     </div>}
   </div>;
 };
-
 // ─── MAIN APP ──────────────────────────────────────────────────────────────
 export default function App() {
   const [officialAccounts] = useState([ADMIN_ACCOUNT]);
