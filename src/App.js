@@ -1,4 +1,10 @@
 import { useState, useRef } from "react";
+import { createClient } from '@supabase/supabase-js';
+
+// ─── BADMINTON SUPABASE ──────────────────────────────────────────────────
+const BADMINTON_URL = "https://wrikykevhzwppsqrsxch.supabase.co";
+const BADMINTON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndyaWt5a2V2aHp3cHBzcXJzeGNoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDI4Nzc1NzksImV4cCI6MjA1ODQ1MzU3OX0.Gi8-6a-gZZhQhRkZ-foTEcwTkYzx3XfsIdzlH6O91ZI";
+const badmintonSupabase = createClient(BADMINTON_URL, BADMINTON_KEY);
 
 const LOGO_DATA_URI = "data:image/png;base64,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";
 
@@ -75,6 +81,66 @@ const fmtDate = d => {
     return d; 
   } 
 };
+
+// ─── FETCH BADMINTON MATCHES ─────────────────────────────────────────────
+async function fetchBadmintonMatches() {
+  try {
+    const { data, error } = await badmintonSupabase
+      .from('matches')
+      .select('id, team1_players, team2_players, team1_score, team2_score, status, scheduled_date, scheduled_time, tournament_matches(stage, round)')
+      .order('scheduled_date', { ascending: true })
+      .order('scheduled_time', { ascending: true });
+
+    if (error) {
+      console.error('Badminton fetch error:', error);
+      return [];
+    }
+
+    if (!data || data.length === 0) {
+      console.log('No Badminton matches found');
+      return [];
+    }
+
+    // Convert to app format
+    return data.map(match => {
+      const pA = match.team1_players?.[0]?.name || 'TBD';
+      const pB = match.team2_players?.[0]?.name || 'TBD';
+
+      let status = 'scheduled';
+      if (match.status === 'completed') status = 'finished';
+      else if (match.status === 'in_progress') status = 'live';
+      else if (match.status === 'scheduled') status = 'scheduled';
+
+      let roundLabel = '';
+      if (match.tournament_matches) {
+        const { stage, round } = match.tournament_matches;
+        if (stage === 'group' && round === 1) roundLabel = 'Group Stage';
+        else if (stage === 'knockout' && round === 1) roundLabel = 'Final';
+        else if (stage === 'knockout' && round === 2) roundLabel = 'Semifinal';
+        else roundLabel = `${stage || ''} Round ${round || ''}`;
+      }
+
+      return {
+        id: match.id,
+        sport: 'Badminton',
+        round: roundLabel,
+        pA: pA,
+        pB: pB,
+        date: match.scheduled_date || '',
+        time: match.scheduled_time || '',
+        venue: '',
+        scoreA: match.team1_score ?? null,
+        scoreB: match.team2_score ?? null,
+        status: status,
+        kind: 'match',
+        _raw: match
+      };
+    });
+  } catch (err) {
+    console.error('Error fetching Badminton:', err);
+    return [];
+  }
+}
 
 function recalcStandings(members, matches) {
   const st = members.map(p => ({...p, played:0, won:0, drawn:0, lost:0, pts:0}));
@@ -841,6 +907,7 @@ export default function App() {
   const [pairs] = useState(PAIRS_INIT);
   const [programEvents, setProgramEvents] = useState(() => seedProgram());
   const [brackets] = useState({});
+  const [badmintonMatches, setBadmintonMatches] = useState([]);
 
   const [view, setView] = useState("schedule");
   const [officialTab, setOfficialTab] = useState("program");
@@ -854,6 +921,19 @@ export default function App() {
   const [toast, setToast] = useState(null);
   const [official, setOfficial] = useState(null);
   const [showLogin, setShowLogin] = useState(false);
+  
+    // ─── BADMINTON DATA ──────────────────────────────────────────────────────
+  const [badmintonMatches, setBadmintonMatches] = useState([]);
+
+  useEffect(() => {
+    async function loadBadminton() {
+      const data = await fetchBadmintonMatches();
+      setBadmintonMatches(data);
+      console.log('Badminton matches loaded:', data.length);
+    }
+    loadBadminton();
+  }, []);
+  
   const progIdRef = useRef(10);
   const logoClickCount = useRef(0);
   const logoClickTimer = useRef(null);
@@ -869,24 +949,33 @@ export default function App() {
   };
 
   // ── Derive all matches from brackets ──────────────────────────────────────
-  const allBracketMatches = () => {
-    const out = [];
-    Object.entries(brackets).forEach(([sport, t]) => {
-      if(!t) return;
-      const collect = (match) => {
-        if(!match.pA||match.pA.isTbd) return;
-        out.push({ ...match, sport, kind:"match" });
-      };
-      if(t.format==="knockout")       t.rounds?.forEach(r=>r.forEach(collect));
-      if(t.format==="roundrobin")     t.rounds?.forEach(r=>r.matches?.forEach(collect));
-      if(t.format==="swiss")          t.rounds?.forEach(r=>r.matches?.forEach(collect));
-      if(t.format==="group_knockout") {
-        t.groups?.forEach(g=>g.rounds?.forEach(r=>r.matches?.forEach(collect)));
-        t.knockout?.rounds?.forEach(r=>r.forEach(collect));
-      }
-    });
-    return out;
-  };
+ const allBracketMatches = () => {
+  const out = [];
+  
+  // Add Badminton matches from Supabase
+  badmintonMatches.forEach(m => {
+    out.push({ ...m, kind: 'match' });
+  });
+
+  // Add matches from brackets (Chess, Domino, etc.)
+  // ... existing code
+  Object.entries(brackets).forEach(([sport, t]) => {
+    if(!t) return;
+    const collect = (match) => {
+      if(!match.pA||match.pA.isTbd) return;
+      out.push({ ...match, sport, kind:"match" });
+    };
+    if(t.format==="knockout")       t.rounds?.forEach(r=>r.forEach(collect));
+    if(t.format==="roundrobin")     t.rounds?.forEach(r=>r.matches?.forEach(collect));
+    if(t.format==="swiss")          t.rounds?.forEach(r=>r.matches?.forEach(collect));
+    if(t.format==="group_knockout") {
+      t.groups?.forEach(g=>g.rounds?.forEach(r=>r.matches?.forEach(collect)));
+      t.knockout?.rounds?.forEach(r=>r.forEach(collect));
+    }
+  });
+  
+  return out;
+};
 
   // ── Live ticker ────────────────────────────────────────────────────────────
   const liveNow = allBracketMatches().filter(m=>m.status==="live");
