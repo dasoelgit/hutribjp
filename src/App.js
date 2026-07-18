@@ -930,6 +930,7 @@ function MatchCard({ m, lookupParticipant }) {
     </div>}
   </div>;
 };
+}
 // ─── MAIN APP ──────────────────────────────────────────────────────────────
 export default function App() {
   const [officialAccounts] = useState([ADMIN_ACCOUNT]);
