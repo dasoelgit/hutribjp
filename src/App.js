@@ -70,7 +70,12 @@ const rtFlag = (rtName) => {
   return m ? String(+m[1]).padStart(2,"0") : "09";
 };
 
-const ADMIN_ACCOUNT = { id:"admin", username:"admin", password:"giobjp26", role:"Admin", badge:"🛡️", isAdmin:true };
+const ACCOUNTS = [
+  { id:"admin", username:"admin", password:"giobjp26", role:"admin", badge:"🛡️", label:"Super Admin" },
+  { id:"chess", username:"chess", password:"catur26", role:"chess_admin", badge:"♟️", label:"Chess Admin" },
+  { id:"domino", username:"domino", password:"balak6", role:"domino_admin", badge:"🀱", label:"Domino Admin" },
+  { id:"event", username:"event", password:"hutri26", role:"event_admin", badge:"📌", label:"Event Admin" },
+];
 
 const seedProgram = () => [];
 
@@ -812,7 +817,7 @@ function MatchCard({ m, lookupParticipant }) {
 
 // ─── MAIN APP ──────────────────────────────────────────────────────────────
 export default function App() {
-  const [officialAccounts] = useState([ADMIN_ACCOUNT]);
+  const [officialAccounts] = useState([ACCOUNT]);
   const [clubs] = useState(CLUBS_INIT);
   const [players] = useState(PLAYERS_INIT);
   const [pairs] = useState(PAIRS_INIT);
@@ -1134,11 +1139,36 @@ export default function App() {
             <div style={{fontSize:12,color:C.muted,marginTop:4}}>{official.badge} {official.role} · {official.username}</div>
           </div>
           <div style={{display:"flex",gap:8,flexWrap:"wrap",marginBottom:24}}>
-            {[["program","📌 Program"],["chess","♟️ Chess"],["domino","🀱 Domino"]].map(([v,l])=>(
-              <button key={v} onClick={()=>setOfficialTab(v)} style={tabBtn(officialTab===v)}>{l}</button>
-            ))}
-          </div>
-
+  {/* Super Admin sees everything */}
+  {official?.role === "admin" && (
+    <>
+      <button onClick={()=>setOfficialTab("program")} style={tabBtn(officialTab==="program")}>📌 Program</button>
+      <button onClick={()=>setOfficialTab("chess")} style={tabBtn(officialTab==="chess")}>♟️ Chess</button>
+      <button onClick={()=>setOfficialTab("domino")} style={tabBtn(officialTab==="domino")}>🀱 Domino</button>
+    </>
+  )}
+  
+  {/* Chess Admin sees only Chess */}
+  {official?.role === "chess_admin" && (
+    <>
+      <button onClick={()=>setOfficialTab("chess")} style={tabBtn(officialTab==="chess")}>♟️ Chess</button>
+    </>
+  )}
+  
+  {/* Domino Admin sees only Domino */}
+  {official?.role === "domino_admin" && (
+    <>
+      <button onClick={()=>setOfficialTab("domino")} style={tabBtn(officialTab==="domino")}>🀱 Domino</button>
+    </>
+  )}
+  
+  {/* Event Admin sees only Program */}
+  {official?.role === "event_admin" && (
+    <>
+      <button onClick={()=>setOfficialTab("program")} style={tabBtn(officialTab==="program")}>📌 Program</button>
+    </>
+  )}
+</div>
           {/* Program events */}
           {officialTab==="program"&&(
             <div style={{background:C.white,border:`1.5px solid ${C.border}`,borderRadius:12,padding:22,boxShadow:"0 1px 4px rgba(0,0,0,0.04)"}}>
