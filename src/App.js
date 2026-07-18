@@ -8,6 +8,14 @@ const BADMINTON_URL = "https://wrikykevhzwppsqrsxch.supabase.co";
 const BADMINTON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndyaWt5a2V2aHp3cHBzcXJzeGNoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODI4ODk3OTAsImV4cCI6MjA5ODQ2NTc5MH0.YI6Aee8WMOvyLNRbe28PcMpueKt6cE_RnASAZP6NX6A";
 const badmintonSupabase = createClient(BADMINTON_URL, BADMINTON_KEY);
 
+// ─── CHESS & DOMINO SUPABASE ──────────────────────────────────────────────
+const SPORTS_URL = "https://iutaonvfytlfqxqzrasv.supabase.co";
+const SPORTS_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Iml1dGFvbnZmeXRsZnF4cXpyYXN2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODIwNDY2NjEsImV4cCI6MjA5NzYyMjY2MX0._4kfSi97ZbWDUq_GL4UU0tGJB7trj8fz781QHpE64V0";
+const sportsSupabase = createClient(SPORTS_URL, SPORTS_KEY);
+
+const CHESS_TABLE = "hut_ri_bjp_2026_chess";
+const DOMINO_TABLE = "hut_ri_bjp_2026_domino";
+
 // ─── DESIGN TOKENS ──────────────────────────────────────────────────────────
 const C = {
   bg:"#F8F0F0", surface:"#FDF5F5", card:"#FFFFFF", border:"#EDD5D5", borderMid:"#DDB8B8",
@@ -82,6 +90,18 @@ const fmtDate = d => {
   } 
 };
 
+const fmtTime = t => {
+  if (!t) return '';
+  try {
+    if (t.includes(':')) {
+      return t.substring(0, 5);
+    }
+    return t;
+  } catch {
+    return t;
+  }
+};
+
 // ─── FETCH BADMINTON MATCHES ─────────────────────────────────────────────
 async function fetchBadmintonMatches() {
   try {
@@ -100,7 +120,7 @@ async function fetchBadmintonMatches() {
       return [];
     }
 
-    const mapped = data.map(match => {
+    return data.map(match => {
       const buildSide = (teamPlayers) => {
         if (!Array.isArray(teamPlayers) || teamPlayers.length === 0) return null;
         const valid = teamPlayers.filter(p => p && p.name);
@@ -159,12 +179,152 @@ async function fetchBadmintonMatches() {
         _raw: match
       };
     });
-
-    return mapped;
   } catch (err) {
     console.error('Error fetching Badminton:', err);
     return [];
   }
+}
+
+// ─── FETCH SPORT MATCHES (Chess & Domino) ──────────────────────────────────
+async function fetchSportMatches(table, sportName) {
+  try {
+    const { data, error } = await sportsSupabase
+      .from(table)
+      .select('*')
+      .order('date', { ascending: true })
+      .order('time', { ascending: true });
+
+    if (error) {
+      console.error(`Error fetching ${sportName}:`, error);
+      return [];
+    }
+
+    if (!data || data.length === 0) {
+      return [];
+    }
+
+    return data.map(match => {
+      let status = 'scheduled';
+      if (match.status === 'completed' || match.status === 'finished') status = 'finished';
+      else if (match.status === 'in_progress' || match.status === 'live') status = 'live';
+      else if (match.status === 'scheduled' || match.status === 'pending') status = 'scheduled';
+
+      return {
+        id: match.id,
+        sport: sportName,
+        round: match.round || '',
+        pA: match.pa || match.pA || 'TBD',
+        pB: match.pb || match.pB || 'TBD',
+        date: match.date || '',
+        time: match.time || '',
+        venue: match.venue || '',
+        scoreA: match.scorea ?? match.scoreA ?? null,
+        scoreB: match.scoreb ?? match.scoreB ?? null,
+        status: status,
+        kind: 'match',
+        _raw: match
+      };
+    });
+  } catch (err) {
+    console.error(`Error fetching ${sportName}:`, err);
+    return [];
+  }
+}
+
+// ─── SAVE SPORT MATCH (Chess & Domino) ────────────────────────────────────
+async function saveSportMatch(table, match) {
+  try {
+    const { error } = await sportsSupabase
+      .from(table)
+      .update({
+        round: match.round,
+        pA: match.pA,
+        pB: match.pB,
+        date: match.date,
+        time: match.time,
+        venue: match.venue,
+        scoreA: match.scoreA,
+        scoreB: match.scoreB,
+        status: match.status
+      })
+      .eq('id', match.id);
+
+    if (error) {
+      console.error('Save error:', error);
+      return false;
+    }
+    return true;
+  } catch (err) {
+    console.error('Error saving match:', err);
+    return false;
+  }
+}
+
+// ─── DELETE SPORT MATCH ──────────────────────────────────────────────────
+async function deleteSportMatch(table, id) {
+  try {
+    const { error } = await sportsSupabase
+      .from(table)
+      .delete()
+      .eq('id', id);
+
+    if (error) {
+      console.error('Delete error:', error);
+      return false;
+    }
+    return true;
+  } catch (err) {
+    console.error('Error deleting match:', err);
+    return false;
+  }
+}
+
+// ─── ADD SPORT MATCH ─────────────────────────────────────────────────────
+async function addSportMatch(table, match) {
+  try {
+    const { data, error } = await sportsSupabase
+      .from(table)
+      .insert([{
+        round: match.round,
+        pA: match.pA,
+        pB: match.pB,
+        date: match.date,
+        time: match.time,
+        venue: match.venue,
+        scoreA: null,
+        scoreB: null,
+        status: 'scheduled'
+      }])
+      .select();
+
+    if (error) {
+      console.error('Add error:', error);
+      return null;
+    }
+    return data?.[0] || null;
+  } catch (err) {
+    console.error('Error adding match:', err);
+    return null;
+  }
+}
+
+// ─── CSV IMPORT ────────────────────────────────────────────────────────────
+function parseCSV(text) {
+  const lines = text.trim().split('\n').filter(l => l.trim());
+  if (lines.length === 0) return [];
+  
+  const headers = lines[0].split(',').map(h => h.trim().toLowerCase());
+  const result = [];
+  
+  for (let i = 1; i < lines.length; i++) {
+    const values = lines[i].split(',').map(v => v.trim());
+    const obj = {};
+    headers.forEach((h, idx) => {
+      obj[h] = values[idx] || '';
+    });
+    result.push(obj);
+  }
+  return result;
 }
 
 // ─── STATUS CONFIG ──────────────────────────────────────────────────────────
@@ -291,6 +451,255 @@ function EditModal({ item, clubs, players, pairs, onSave, onClose }) {
   );
 }
 
+// ─── SPORT MANAGEMENT MODAL ────────────────────────────────────────────────
+function SportMatchModal({ sport, match, onSave, onDelete, onClose }) {
+  const [form, setForm] = useState(match || {
+    round: '',
+    pA: '',
+    pB: '',
+    date: '',
+    time: '',
+    venue: '',
+    status: 'scheduled'
+  });
+  const isEdit = !!match?.id;
+
+  const handleSubmit = () => {
+    if (!form.round || !form.pA || !form.pB || !form.date) {
+      alert('Please fill in Round, Player A, Player B, and Date');
+      return;
+    }
+    onSave(form);
+  };
+
+  const inp = { background: C.surface, border: `1.5px solid ${C.border}`, borderRadius: 8, color: C.ink, padding: "9px 12px", fontSize: 13, width: "100%", boxSizing: "border-box" };
+  const lbl = { fontSize: 10, color: C.muted, fontWeight: 700, display: "block", marginBottom: 4, letterSpacing: 1 };
+
+  return (
+    <div style={{ position: "fixed", inset: 0, background: "rgba(26,5,5,0.55)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 500, backdropFilter: "blur(4px)" }}>
+      <div style={{ background: C.white, border: `1.5px solid ${C.border}`, borderRadius: 16, padding: 24, width: 500, maxWidth: "95vw", maxHeight: "90vh", overflowY: "auto", boxShadow: "0 20px 60px rgba(0,0,0,0.2)" }}>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16 }}>
+          <div style={{ fontWeight: 800, fontSize: 16, color: C.ink }}>{isEdit ? "Edit" : "Add"} {sport} Match</div>
+          <button onClick={onClose} style={{ background: "none", border: "none", cursor: "pointer", fontSize: 20, color: C.muted, lineHeight: 1 }}>✕</button>
+        </div>
+
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+          <div><label style={lbl}>ROUND *</label><input style={inp} value={form.round} onChange={e => setForm({ ...form, round: e.target.value })} placeholder="Round 1, Final..." /></div>
+          <div><label style={lbl}>VENUE</label><input style={inp} value={form.venue || ''} onChange={e => setForm({ ...form, venue: e.target.value })} placeholder="Venue" /></div>
+          <div><label style={lbl}>PLAYER A *</label><input style={inp} value={form.pA} onChange={e => setForm({ ...form, pA: e.target.value })} placeholder="Player A" /></div>
+          <div><label style={lbl}>PLAYER B *</label><input style={inp} value={form.pB} onChange={e => setForm({ ...form, pB: e.target.value })} placeholder="Player B" /></div>
+          <div><label style={lbl}>DATE *</label><input style={inp} type="date" value={form.date} onChange={e => setForm({ ...form, date: e.target.value })} /></div>
+          <div><label style={lbl}>TIME</label><input style={inp} type="time" value={form.time || ''} onChange={e => setForm({ ...form, time: e.target.value })} /></div>
+        </div>
+
+        {isEdit && (
+          <div style={{ marginTop: 12 }}>
+            <label style={lbl}>STATUS</label>
+            <select style={inp} value={form.status} onChange={e => setForm({ ...form, status: e.target.value })}>
+              <option value="scheduled">Scheduled</option>
+              <option value="live">Live</option>
+              <option value="finished">Finished</option>
+            </select>
+          </div>
+        )}
+
+        <div style={{ display: "flex", gap: 10, marginTop: 16 }}>
+          <button onClick={onClose} style={{ flex: 1, padding: "10px", borderRadius: 8, border: `1.5px solid ${C.border}`, background: C.white, color: C.muted, cursor: "pointer", fontWeight: 600 }}>Cancel</button>
+          <button onClick={handleSubmit} style={{ flex: 2, padding: "10px", borderRadius: 8, border: "none", background: `linear-gradient(135deg,${C.redDeep},${C.red})`, color: C.white, cursor: "pointer", fontWeight: 800, fontSize: 14, boxShadow: `0 4px 16px ${C.redGlow}` }}>
+            {isEdit ? "💾 Save" : "➕ Add Match"}
+          </button>
+        </div>
+        {isEdit && (
+          <button onClick={onDelete} style={{ marginTop: 10, width: "100%", padding: "8px", borderRadius: 8, border: "1.5px solid #FECACA", background: C.redFaint, color: C.red, cursor: "pointer", fontWeight: 700, fontSize: 13 }}>
+            🗑 Delete Match
+          </button>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ─── CSV IMPORT MODAL ─────────────────────────────────────────────────────
+function CSVImportModal({ sport, onImport, onClose }) {
+  const [csvText, setCsvText] = useState('');
+  const [preview, setPreview] = useState([]);
+
+  const handlePreview = () => {
+    const parsed = parseCSV(csvText);
+    setPreview(parsed);
+  };
+
+  const handleImport = () => {
+    if (preview.length === 0) return;
+    onImport(preview);
+    onClose();
+  };
+
+  const template = `round,pA,pB,date,time,venue\nRound 1,Player A,Player B,2026-07-20,09:00,Venue\nFinal,TBD,TBD,2026-07-25,16:00,Main Hall`;
+
+  const inp = { background: C.surface, border: `1.5px solid ${C.border}`, borderRadius: 8, color: C.ink, padding: "9px 12px", fontSize: 13, width: "100%", boxSizing: "border-box" };
+  const lbl = { fontSize: 10, color: C.muted, fontWeight: 700, display: "block", marginBottom: 4, letterSpacing: 1 };
+
+  return (
+    <div style={{ position: "fixed", inset: 0, background: "rgba(26,5,5,0.55)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 500, backdropFilter: "blur(4px)" }}>
+      <div style={{ background: C.white, border: `1.5px solid ${C.border}`, borderRadius: 16, padding: 24, width: 550, maxWidth: "95vw", maxHeight: "90vh", overflowY: "auto", boxShadow: "0 20px 60px rgba(0,0,0,0.2)" }}>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16 }}>
+          <div style={{ fontWeight: 800, fontSize: 16, color: C.ink }}>📥 Import {sport} Matches from CSV</div>
+          <button onClick={onClose} style={{ background: "none", border: "none", cursor: "pointer", fontSize: 20, color: C.muted, lineHeight: 1 }}>✕</button>
+        </div>
+
+        <div style={{ marginBottom: 12 }}>
+          <label style={lbl}>CSV FORMAT</label>
+          <div style={{ background: C.surface, borderRadius: 8, padding: 8, fontSize: 11, fontFamily: "monospace", color: C.muted, border: `1px solid ${C.border}` }}>
+            {template}
+          </div>
+          <div style={{ fontSize: 11, color: C.muted, marginTop: 4 }}>Download template: copy above or create your own.</div>
+        </div>
+
+        <div style={{ marginBottom: 12 }}>
+          <label style={lbl}>PASTE CSV DATA</label>
+          <textarea
+            style={{ ...inp, height: 140, fontFamily: "monospace", fontSize: 12, resize: "vertical" }}
+            value={csvText}
+            onChange={e => { setCsvText(e.target.value); setPreview([]); }}
+            placeholder={template}
+          />
+        </div>
+
+        <button onClick={handlePreview} style={{ padding: "6px 16px", borderRadius: 6, border: `1.5px solid ${C.bluBorder}`, background: C.bluBg, color: C.bluText, cursor: "pointer", fontWeight: 600, fontSize: 13, marginBottom: 12 }}>
+          Preview
+        </button>
+
+        {preview.length > 0 && (
+          <div style={{ marginBottom: 12 }}>
+            <div style={{ fontWeight: 700, fontSize: 13, color: C.ink, marginBottom: 6 }}>{preview.length} matches found:</div>
+            <div style={{ background: C.surface, borderRadius: 8, padding: 8, maxHeight: 150, overflow: "auto", border: `1px solid ${C.border}` }}>
+              {preview.slice(0, 10).map((row, i) => (
+                <div key={i} style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr 1fr", gap: 4, fontSize: 11, padding: "2px 0", borderBottom: i < preview.length - 1 ? `1px solid ${C.border}` : 'none' }}>
+                  <span>{row.round || '-'}</span>
+                  <span>{row.pA || '-'}</span>
+                  <span>{row.pB || '-'}</span>
+                  <span>{row.date || '-'}</span>
+                </div>
+              ))}
+              {preview.length > 10 && <div style={{ fontSize: 11, color: C.muted, paddingTop: 4 }}>...and {preview.length - 10} more</div>}
+            </div>
+          </div>
+        )}
+
+        <div style={{ display: "flex", gap: 10 }}>
+          <button onClick={onClose} style={{ flex: 1, padding: "10px", borderRadius: 8, border: `1.5px solid ${C.border}`, background: C.white, color: C.muted, cursor: "pointer", fontWeight: 600 }}>Cancel</button>
+          <button onClick={handleImport} disabled={preview.length === 0} style={{ flex: 2, padding: "10px", borderRadius: 8, border: "none", background: preview.length > 0 ? `linear-gradient(135deg,${C.redDeep},${C.red})` : '#ccc', color: C.white, cursor: preview.length > 0 ? "pointer" : "not-allowed", fontWeight: 800, fontSize: 14 }}>
+            ✅ Import {preview.length} Matches
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── SPORT MANAGEMENT VIEW ────────────────────────────────────────────────
+function SportManagement({ sport, matches, onAdd, onEdit, onDelete, onRefresh, showToast }) {
+  const [showAddModal, setShowAddModal] = useState(false);
+  const [showImportModal, setShowImportModal] = useState(false);
+  const [editingMatch, setEditingMatch] = useState(null);
+
+  const handleSave = async (form) => {
+    if (editingMatch) {
+      const updated = await onEdit(editingMatch.id, form);
+      if (updated) showToast(`${sport} match updated!`);
+    } else {
+      const added = await onAdd(form);
+      if (added) showToast(`${sport} match added!`);
+    }
+    setShowAddModal(false);
+    setEditingMatch(null);
+    onRefresh();
+  };
+
+  const handleDelete = async () => {
+    if (editingMatch && window.confirm(`Delete this ${sport} match?`)) {
+      const deleted = await onDelete(editingMatch.id);
+      if (deleted) showToast(`${sport} match deleted!`);
+      setEditingMatch(null);
+      setShowAddModal(false);
+      onRefresh();
+    }
+  };
+
+  const handleImport = async (rows) => {
+    let count = 0;
+    for (const row of rows) {
+      if (row.round && row.pA && row.pB && row.date) {
+        const added = await onAdd(row);
+        if (added) count++;
+      }
+    }
+    if (count > 0) showToast(`${count} ${sport} matches imported!`);
+    onRefresh();
+  };
+
+  const icon = sport === 'Chess' ? '♟️' : '🀱';
+
+  const sorted = [...matches].sort((a, b) => (a.date || '').localeCompare(b.date || '') || (a.time || '').localeCompare(b.time || ''));
+
+  return (
+    <div style={{ background: C.white, border: `1.5px solid ${C.border}`, borderRadius: 12, padding: 22, boxShadow: "0 1px 4px rgba(0,0,0,0.04)" }}>
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 12 }}>
+        <div style={{ fontWeight: 800, fontSize: 15, color: C.ink }}>{icon} {sport} Management</div>
+        <div style={{ display: "flex", gap: 8 }}>
+          <button onClick={() => setShowImportModal(true)} style={{ padding: "6px 12px", borderRadius: 6, border: `1.5px solid ${C.bluBorder}`, background: C.bluBg, color: C.bluText, cursor: "pointer", fontWeight: 600, fontSize: 12 }}>📥 Import CSV</button>
+          <button onClick={() => { setEditingMatch(null); setShowAddModal(true); }} style={{ padding: "6px 14px", borderRadius: 6, border: "none", background: `linear-gradient(135deg,${C.redDeep},${C.red})`, color: C.white, cursor: "pointer", fontWeight: 700, fontSize: 12 }}>+ Add Match</button>
+        </div>
+      </div>
+
+      {sorted.length === 0 ? (
+        <div style={{ textAlign: "center", color: C.faint, padding: 32, fontSize: 13 }}>No {sport} matches yet. Add one or import CSV.</div>
+      ) : (
+        <div style={{ maxHeight: 400, overflowY: "auto" }}>
+          {sorted.map(m => (
+            <div key={m.id} style={{ background: C.surface, border: `1.5px solid ${C.border}`, borderRadius: 8, padding: "10px 14px", marginBottom: 6, display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 6 }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 8, flex: 1, minWidth: 180 }}>
+                <span style={{ fontSize: 11, fontWeight: 700, color: C.muted }}>{m.round || '—'}</span>
+                <span style={{ fontSize: 13, fontWeight: 600, color: C.ink }}>{m.pA}</span>
+                <span style={{ color: C.faint }}>vs</span>
+                <span style={{ fontSize: 13, fontWeight: 600, color: C.ink }}>{m.pB}</span>
+              </div>
+              <div style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 11, color: C.muted }}>
+                <span>{m.date || '—'}</span>
+                <span>{m.time ? fmtTime(m.time) : '—'}</span>
+                <Pill status={m.status} />
+              </div>
+              <div style={{ display: "flex", gap: 4 }}>
+                <button onClick={() => { setEditingMatch(m); setShowAddModal(true); }} style={{ fontSize: 11, padding: "2px 8px", borderRadius: 4, border: `1px solid ${C.border}`, background: C.white, cursor: "pointer" }}>✏️</button>
+                <button onClick={async () => { if (window.confirm(`Delete this ${sport} match?`)) { await onDelete(m.id); onRefresh(); showToast(`${sport} match deleted!`); } }} style={{ fontSize: 11, padding: "2px 8px", borderRadius: 4, border: "1px solid #FECACA", background: C.redFaint, color: C.red, cursor: "pointer" }}>🗑</button>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {showAddModal && (
+        <SportMatchModal
+          sport={sport}
+          match={editingMatch}
+          onSave={handleSave}
+          onDelete={handleDelete}
+          onClose={() => { setShowAddModal(false); setEditingMatch(null); }}
+        />
+      )}
+
+      {showImportModal && (
+        <CSVImportModal
+          sport={sport}
+          onImport={handleImport}
+          onClose={() => setShowImportModal(false)}
+        />
+      )}
+    </div>
+  );
+}
+
 // ─── PROGRAM CARD ───────────────────────────────────────────────────────────
 function ProgramCard({ e }) {
   return (
@@ -346,7 +755,7 @@ function MatchCard({ m, lookupParticipant }) {
       );
     }
 
-    // For other sports
+    // For other sports (Chess, Domino, etc.)
     if (m.status === "scheduled") {
       return <div style={{color:C.faint,fontWeight:700,fontSize:18,textAlign:"center",padding:"0 12px"}}>vs</div>;
     }
@@ -414,6 +823,8 @@ export default function App() {
     } catch { return seedProgram(); }
   });
   const [badmintonMatches, setBadmintonMatches] = useState([]);
+  const [chessMatches, setChessMatches] = useState([]);
+  const [dominoMatches, setDominoMatches] = useState([]);
 
   useEffect(() => {
     try { localStorage.setItem("hutribjp_program", JSON.stringify(programEvents)); } catch {}
@@ -444,6 +855,24 @@ export default function App() {
     loadBadminton();
   }, []);
 
+  // ─── LOAD CHESS & DOMINO DATA ─────────────────────────────────────────────
+  const loadChess = async () => {
+    const data = await fetchSportMatches(CHESS_TABLE, 'Chess');
+    setChessMatches(data);
+    console.log('Chess matches loaded:', data.length);
+  };
+
+  const loadDomino = async () => {
+    const data = await fetchSportMatches(DOMINO_TABLE, 'Domino');
+    setDominoMatches(data);
+    console.log('Domino matches loaded:', data.length);
+  };
+
+  useEffect(() => {
+    loadChess();
+    loadDomino();
+  }, []);
+
   const showToast = (msg, type="success") => { setToast({msg,type}); setTimeout(()=>setToast(null),3000); };
 
   const lookupParticipant = (sport, idOrObj) => {
@@ -459,9 +888,9 @@ export default function App() {
   // ── Derive all matches ──────────────────────────────────────────────────
   const allMatches = () => {
     const out = [];
-    badmintonMatches.forEach(m => {
-      out.push({ ...m, kind: 'match' });
-    });
+    badmintonMatches.forEach(m => out.push({ ...m, kind: 'match' }));
+    chessMatches.forEach(m => out.push({ ...m, kind: 'match' }));
+    dominoMatches.forEach(m => out.push({ ...m, kind: 'match' }));
     return out;
   };
 
@@ -508,6 +937,43 @@ export default function App() {
     setEditProgItem(null); showToast("Event updated!");
   };
 
+  // ── Sport management handlers ─────────────────────────────────────────────
+  const handleChessAdd = async (form) => {
+    const result = await addSportMatch(CHESS_TABLE, form);
+    if (result) await loadChess();
+    return result;
+  };
+
+  const handleChessEdit = async (id, form) => {
+    const result = await saveSportMatch(CHESS_TABLE, { ...form, id });
+    if (result) await loadChess();
+    return result;
+  };
+
+  const handleChessDelete = async (id) => {
+    const result = await deleteSportMatch(CHESS_TABLE, id);
+    if (result) await loadChess();
+    return result;
+  };
+
+  const handleDominoAdd = async (form) => {
+    const result = await addSportMatch(DOMINO_TABLE, form);
+    if (result) await loadDomino();
+    return result;
+  };
+
+  const handleDominoEdit = async (id, form) => {
+    const result = await saveSportMatch(DOMINO_TABLE, { ...form, id });
+    if (result) await loadDomino();
+    return result;
+  };
+
+  const handleDominoDelete = async (id) => {
+    const result = await deleteSportMatch(DOMINO_TABLE, id);
+    if (result) await loadDomino();
+    return result;
+  };
+
   // ── style atoms ───────────────────────────────────────────────────────────
   const inp={background:C.surface,border:`1.5px solid ${C.border}`,borderRadius:8,color:C.ink,padding:"9px 12px",fontSize:13,width:"100%",boxSizing:"border-box"};
   const lbl={fontSize:10,color:C.muted,fontWeight:700,display:"block",marginBottom:4,letterSpacing:1};
@@ -537,7 +1003,7 @@ export default function App() {
           {grouped[date].map((item,idx)=>(
             <div key={idx} style={{display:"flex"}}>
               <div style={{width:52,paddingTop:16,paddingRight:12,textAlign:"right",flexShrink:0}}>
-                <span style={{fontSize:12,fontWeight:700,color:C.muted}}>{item._time||"—"}</span>
+                <span style={{fontSize:12,fontWeight:700,color:C.muted}}>{item._time ? fmtTime(item._time) : "—"}</span>
               </div>
               <div style={{flex:1}}>
                 {item.kind==="match"
@@ -646,7 +1112,7 @@ export default function App() {
             .map((m,i)=>(
               <div key={i} style={{display:"flex",marginBottom:10}}>
                 <div style={{width:52,paddingTop:16,paddingRight:12,textAlign:"right",flexShrink:0}}>
-                  <span style={{fontSize:12,fontWeight:700,color:C.muted}}>{m.time||"—"}</span>
+                  <span style={{fontSize:12,fontWeight:700,color:C.muted}}>{m.time ? fmtTime(m.time) : "—"}</span>
                 </div>
                 <div style={{flex:1}}><MatchCard m={m} lookupParticipant={lookupParticipant}/></div>
               </div>
@@ -668,7 +1134,7 @@ export default function App() {
             <div style={{fontSize:12,color:C.muted,marginTop:4}}>{official.badge} {official.role} · {official.username}</div>
           </div>
           <div style={{display:"flex",gap:8,flexWrap:"wrap",marginBottom:24}}>
-            {[["program","📌 Program"]].map(([v,l])=>(
+            {[["program","📌 Program"],["chess","♟️ Chess"],["domino","🀱 Domino"]].map(([v,l])=>(
               <button key={v} onClick={()=>setOfficialTab(v)} style={tabBtn(officialTab===v)}>{l}</button>
             ))}
           </div>
@@ -682,7 +1148,7 @@ export default function App() {
               {programEvents.sort((a,b)=>a.date.localeCompare(b.date)||a.time.localeCompare(b.time)).map(e=>(
                 <div key={e.id} style={{background:C.surface,border:`1.5px solid ${C.border}`,borderRadius:10,padding:"10px 14px",marginBottom:8,display:"flex",alignItems:"center",gap:10,flexWrap:"wrap"}}>
                   <div style={{flex:1,minWidth:200}}>
-                    <div style={{fontSize:11,color:C.muted,marginBottom:2}}>{fmtDate(e.date)} {e.time} · {e.venue||"TBA"}</div>
+                    <div style={{fontSize:11,color:C.muted,marginBottom:2}}>{fmtDate(e.date)} {e.time ? fmtTime(e.time) : ''} · {e.venue||"TBA"}</div>
                     <div style={{fontWeight:700,fontSize:13,color:C.ink}}>{e.title}</div>
                     {e.description&&<div style={{fontSize:11,color:C.muted,marginTop:2}}>{e.description}</div>}
                   </div>
@@ -703,6 +1169,32 @@ export default function App() {
               {npForm.title&&npForm.date&&<div style={{marginBottom:14}}><div style={{fontSize:10,color:C.muted,fontWeight:700,letterSpacing:1,marginBottom:8}}>PREVIEW</div><ProgramCard e={npForm}/></div>}
               <button style={primaryBtn} onClick={handleAddProgram}>📌 Add to Schedule</button>
             </div>
+          )}
+
+          {/* Chess Management */}
+          {officialTab==="chess"&&(
+            <SportManagement
+              sport="Chess"
+              matches={chessMatches}
+              onAdd={handleChessAdd}
+              onEdit={handleChessEdit}
+              onDelete={handleChessDelete}
+              onRefresh={loadChess}
+              showToast={showToast}
+            />
+          )}
+
+          {/* Domino Management */}
+          {officialTab==="domino"&&(
+            <SportManagement
+              sport="Domino"
+              matches={dominoMatches}
+              onAdd={handleDominoAdd}
+              onEdit={handleDominoEdit}
+              onDelete={handleDominoDelete}
+              onRefresh={loadDomino}
+              showToast={showToast}
+            />
           )}
         </>}
 
