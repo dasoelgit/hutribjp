@@ -906,7 +906,6 @@ function MatchCard({ m, lookupParticipant }) {
 }
 
 // ─── MAIN APP ──────────────────────────────────────────────────────────────
-export default function App() {
   const [officialAccounts] = useState([ADMIN_ACCOUNT]);
   const [clubs] = useState(CLUBS_INIT);
   const [players] = useState(PLAYERS_INIT);
