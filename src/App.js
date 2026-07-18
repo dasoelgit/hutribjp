@@ -82,21 +82,6 @@ const fmtDate = d => {
   } 
 };
 
-function recalcStandings(members, matches) {
-  const st = members.map(p => ({...p, played:0, won:0, drawn:0, lost:0, pts:0}));
-  matches.forEach(m => {
-    if(m.status !== "finished" || !m.result) return;
-    const iA = st.findIndex(p => p.id === m.pA?.id);
-    const iB = st.findIndex(p => p.id === m.pB?.id);
-    if(iA < 0 || iB < 0) return;
-    st[iA].played++; st[iB].played++;
-    if(m.result === "A"){ st[iA].won++; st[iA].pts += 3; st[iB].lost++; }
-    else if(m.result === "B"){ st[iB].won++; st[iB].pts += 3; st[iA].lost++; }
-    else{ st[iA].drawn++; st[iA].pts += 1; st[iB].drawn++; st[iB].pts += 1; }
-  });
-  return st.sort((a,b) => b.pts - a.pts || b.won - a.won);
-}
-
 // ─── FETCH BADMINTON MATCHES ─────────────────────────────────────────────
 async function fetchBadmintonMatches() {
   try {
@@ -116,9 +101,6 @@ async function fetchBadmintonMatches() {
     }
 
     const mapped = data.map(match => {
-      // FIX #2: build participant OBJECTS ({name, flag, club}) instead of plain
-      // strings, so lookupParticipant() returns them as-is and MatchCard can
-      // render real names instead of falling back to "TBD".
       const buildSide = (teamPlayers) => {
         if (!Array.isArray(teamPlayers) || teamPlayers.length === 0) return null;
         const valid = teamPlayers.filter(p => p && p.name);
@@ -139,8 +121,6 @@ async function fetchBadmintonMatches() {
       else if (match.status === 'in_progress' || match.status === 'live') status = 'live';
       else if (match.status === 'scheduled' || match.status === 'pending') status = 'scheduled';
 
-      // FIX #3: derive result + sets from team scores so finished matches show
-      // the real score and winner instead of a hardcoded 0–0 with no trophy.
       const hasScore = match.team1_score != null && match.team2_score != null;
       const result = (status === 'finished' && hasScore)
         ? (match.team1_score > match.team2_score ? 'A'
@@ -186,6 +166,7 @@ async function fetchBadmintonMatches() {
     return [];
   }
 }
+
 // ─── STATUS CONFIG ──────────────────────────────────────────────────────────
 const STATUS = {
   scheduled:{ text:"#1E40AF", bg:"#EFF6FF", border:"#BFDBFE", label:"Scheduled" },
@@ -467,386 +448,6 @@ function MatchDetailModal({ match, sport, onSave, onClose }) {
   );
 }
 
-// ─── SHARED MATCH CARD ──────────────────────────────────────────────────────
-function TourneyMatchCard({ match, isOfficial, onClick }) {
-  const pA = match.pA; const pB = match.pB;
-  if(!pA||pA.isTbd) return (
-    <div style={{background:C.surface,border:`1.5px solid ${C.border}`,borderRadius:10,padding:"8px 12px",marginBottom:6,display:"flex",alignItems:"center",gap:8}}>
-      <span style={{color:C.faint,fontSize:12,fontStyle:"italic",flex:1}}>TBD vs TBD</span>
-    </div>
-  );
-  const finished = match.status==="finished";
-  const live     = match.status==="live";
-  const res      = match.result;
-  const isChess  = !match.sets?.length && (res==="draw"||res==="A"||res==="B");
-
-  const scoreDisplay = () => {
-    if(!finished&&!live) return <span style={{fontSize:12,color:C.faint}}>vs</span>;
-    if(res==="draw") return <span style={{fontSize:13,fontWeight:800,color:C.muted}}>½–½</span>;
-    if(res&&match.sets?.length===0&&!isChess) return <span style={{fontSize:13,color:C.muted}}>{res==="A"?"1–0":"0–1"}</span>;
-    if(match.sets?.length) {
-      let wA=0,wB=0; match.sets.forEach(s=>{if(s.sA>s.sB)wA++;else if(s.sB>s.sA)wB++;});
-      return <><span style={{fontSize:16,fontWeight:900,color:res==="A"?C.ink:C.muted}}>{wA}</span>
-               <span style={{color:C.faint,margin:"0 3px"}}>–</span>
-               <span style={{fontSize:16,fontWeight:900,color:res==="B"?C.ink:C.muted}}>{wB}</span></>;
-    }
-    return <span style={{fontSize:12,color:C.muted}}>{res==="A"?"1–0":"0–1"}</span>;
-  };
-
-  const statusDot = live ? <span style={{width:6,height:6,borderRadius:99,background:C.red,display:"inline-block",animation:"pulse 1s infinite",marginRight:4}}/> : null;
-
-  return (
-    <div onClick={isOfficial?onClick:undefined}
-      style={{background:C.white,border:`1.5px solid ${live?"#FECACA":finished?C.greenBorder:C.border}`,borderRadius:10,padding:"8px 12px",marginBottom:6,
-        cursor:isOfficial?"pointer":"default",
-        boxShadow:live?`0 0 0 2px ${C.redFaint}`:finished?"0 1px 4px rgba(22,101,52,0.08)":"0 1px 3px rgba(0,0,0,0.04)",
-        transition:"box-shadow .15s, border-color .15s",
-        position:"relative"}}>
-      {isOfficial&&!finished&&(
-        <span style={{position:"absolute",top:5,right:7,fontSize:9,color:C.faint,fontWeight:600,letterSpacing:0.5}}>tap to edit</span>
-      )}
-      <div style={{display:"flex",alignItems:"center",gap:6}}>
-        {statusDot}
-        {pA.playerA
-          ? <><FlagBadge flag={rtFlag(pA.playerA.club)} size={11}/>{pA.playerB&&pA.playerA.club!==pA.playerB.club&&<FlagBadge flag={rtFlag(pA.playerB.club)} size={11}/>}</>
-          : pA.flag&&<FlagBadge flag={pA.flag} size={12}/>}
-        <span style={{flex:1,fontSize:12,fontWeight:res==="A"?800:600,color:res==="A"?C.ink:C.body,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{pA.name}</span>
-        <div style={{display:"flex",alignItems:"center",gap:2,minWidth:48,justifyContent:"center"}}>{scoreDisplay()}</div>
-        <span style={{flex:1,fontSize:12,fontWeight:res==="B"?800:600,color:res==="B"?C.ink:C.body,textAlign:"right",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{pB?.name??"BYE"}</span>
-        {pB?.playerA
-          ? <><FlagBadge flag={rtFlag(pB.playerA.club)} size={11}/>{pB.playerB&&pB.playerA.club!==pB.playerB.club&&<FlagBadge flag={rtFlag(pB.playerB.club)} size={11}/>}</>
-          : pB?.flag&&<FlagBadge flag={pB.flag} size={12}/>}
-      </div>
-      {(match.date||match.venue)&&(
-        <div style={{fontSize:10,color:C.muted,marginTop:4,display:"flex",gap:8}}>
-          {match.date&&<span>📅 {match.date}{match.time?" "+match.time:""}</span>}
-          {match.venue&&<span>📍 {match.venue}</span>}
-        </div>
-      )}
-      {finished&&match.sets?.length>0&&(
-        <div style={{display:"flex",gap:3,marginTop:4,flexWrap:"wrap"}}>
-          {match.sets.map((s,i)=><span key={i} style={{fontSize:9,color:C.muted,background:C.surface,borderRadius:3,padding:"1px 5px",border:`1px solid ${C.border}`}}>{s.sA}–{s.sB}</span>)}
-        </div>
-      )}
-    </div>
-  );
-}
-
-// ─── KNOCKOUT VIEW ──────────────────────────────────────────────────────────
-function KnockoutView({ rounds, sport, isOfficial, onMatchUpdate }) {
-  const [modal, setModal] = useState(null);
-  
-  if (!rounds||rounds.length===0)
-    return <div style={{textAlign:"center",color:C.muted,padding:40,fontSize:14}}>No bracket yet.</div>;
-  
-  const label=(i,t)=>i===t-1?"Final":i===t-2?"Semi-final":i===t-3?"Quarter-final":`Round ${i+1}`;
-
-  const updateMatch = (ri,pi,updated) => {
-    const winner = updated.result==="A"?"A":updated.result==="B"?"B":null;
-    const winnerObj = winner==="A"?updated.pA:winner==="B"?updated.pB:null;
-    let newRounds = rounds.map((round,r)=>
-      r!==ri ? round : round.map((pair,p)=>p!==pi ? pair : {...updated, winner})
-    );
-    if(winnerObj && ri+1 < newRounds.length) {
-      const nextSlot = Math.floor(pi/2);
-      const isA = pi%2===0;
-      newRounds = newRounds.map((round,r)=> {
-        if(r!==ri+1) return round;
-        return round.map((pair,p)=> {
-          if(p!==nextSlot) return pair;
-          return isA ? {...pair, pA:winnerObj} : {...pair, pB:winnerObj};
-        });
-      });
-    }
-    onMatchUpdate?.(newRounds);
-  };
-
-  return (
-    <>
-      {modal&&<MatchDetailModal match={modal.match} sport={sport} onClose={()=>setModal(null)} onSave={updated=>{updateMatch(modal.ri,modal.pi,updated);setModal(null);}}/>}
-      <div style={{overflowX:"auto",paddingBottom:8}}>
-        <div style={{display:"flex",gap:16,minWidth:rounds.length*200}}>
-          {rounds.map((round,ri)=>(
-            <div key={ri} style={{flex:1,minWidth:185,display:"flex",flexDirection:"column",justifyContent:"space-around"}}>
-              <div style={{fontSize:10,color:C.red,fontWeight:800,letterSpacing:2,textTransform:"uppercase",marginBottom:10,borderLeft:`3px solid ${C.red}`,paddingLeft:8}}>{label(ri,rounds.length)}</div>
-              {round.map((pair,pi)=>{
-                const pA=pair.pA&&!pair.pA?.isTbd?pair.pA:null;
-                const pB=pair.pB&&!pair.pB?.isTbd?pair.pB:null;
-                if(!pA) return (
-                  <div key={pi} style={{background:C.surface,border:`1.5px solid ${C.border}`,borderRadius:10,padding:"8px 12px",marginBottom:12,fontSize:12,color:C.faint,fontStyle:"italic"}}>TBD</div>
-                );
-                const matchObj={...pair,pA,pB};
-                return (
-                  <TourneyMatchCard key={pi} match={matchObj} isOfficial={isOfficial&&!!pA&&!!pB&&!pA.isTbd&&!pB?.isTbd} onClick={()=>setModal({match:matchObj,ri,pi})}/>
-                );
-              })}
-            </div>
-          ))}
-        </div>
-      </div>
-    </>
-  );
-}
-
-// ─── ROUND ROBIN VIEW ──────────────────────────────────────────────────────
-function RoundRobinView({ data, sport, isOfficial, onDataUpdate }) {
-  const [openRound, setOpenRound] = useState(0);
-  const [modal, setModal] = useState(null);
-  if (!data?.rounds?.length) return <div style={{textAlign:"center",color:C.muted,padding:40}}>No schedule yet.</div>;
-
-  const allMatches = data.rounds.flatMap(r=>r.matches);
-  const standings = recalcStandings(data.standings, allMatches);
-  const rankColor = i => [C.gold,C.silver,C.bronze][i]??C.faint;
-
-  const updateMatch = (ri,mi,updated) => {
-    const newRounds = data.rounds.map((r,r2)=>r2!==ri?r:{...r,matches:r.matches.map((m,m2)=>m2!==mi?m:updated)});
-    onDataUpdate?.({...data, rounds:newRounds, standings: recalcStandings(data.standings, newRounds.flatMap(r=>r.matches))});
-  };
-
-  return (
-    <>
-      {modal&&<MatchDetailModal match={modal.match} sport={sport} onClose={()=>setModal(null)} onSave={updated=>{updateMatch(modal.ri,modal.mi,updated);setModal(null);}}/>}
-      <div>
-        <div style={{background:C.white,border:`1.5px solid ${C.border}`,borderRadius:12,overflow:"hidden",marginBottom:16}}>
-          <div style={{padding:"10px 14px",borderBottom:`1.5px solid ${C.border}`,fontWeight:800,fontSize:12,color:C.ink,display:"flex",gap:8}}>
-            <span style={{flex:1}}>STANDINGS</span>
-            <span style={{width:28,textAlign:"center",fontSize:10,color:C.muted}}>P</span>
-            <span style={{width:28,textAlign:"center",fontSize:10,color:C.muted}}>W</span>
-            <span style={{width:28,textAlign:"center",fontSize:10,color:C.muted}}>D</span>
-            <span style={{width:28,textAlign:"center",fontSize:10,color:C.muted}}>L</span>
-            <span style={{width:34,textAlign:"center",fontSize:10,color:C.red,fontWeight:800}}>PTS</span>
-          </div>
-          {standings.map((p,i)=>(
-            <div key={p.id} style={{display:"flex",alignItems:"center",gap:8,padding:"9px 14px",borderBottom:`1px solid ${C.border}`,background:i%2===0?C.white:C.surface}}>
-              <span style={{width:18,fontWeight:900,color:rankColor(i),fontSize:14}}>{i+1}</span>
-              <FlagBadge flag={p.flag} size={13}/>
-              <span style={{flex:1,fontWeight:700,fontSize:13,color:C.ink,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{p.name}</span>
-              <span style={{width:28,textAlign:"center",fontSize:12,color:C.muted}}>{p.played}</span>
-              <span style={{width:28,textAlign:"center",fontSize:12,color:C.greenText,fontWeight:700}}>{p.won}</span>
-              <span style={{width:28,textAlign:"center",fontSize:12,color:C.muted}}>{p.drawn}</span>
-              <span style={{width:28,textAlign:"center",fontSize:12,color:C.red}}>{p.lost}</span>
-              <span style={{width:34,textAlign:"center",fontSize:14,fontWeight:900,color:C.red}}>{p.pts}</span>
-            </div>
-          ))}
-        </div>
-        <div style={{fontSize:11,color:C.muted,fontWeight:700,letterSpacing:1,marginBottom:8}}>MATCH SCHEDULE {isOfficial&&<span style={{color:C.red,fontWeight:700}}> — tap a match to edit</span>}</div>
-        {data.rounds.map((r,ri)=>(
-          <div key={ri} style={{marginBottom:8}}>
-            <button onClick={()=>setOpenRound(openRound===ri?-1:ri)}
-              style={{width:"100%",display:"flex",alignItems:"center",justifyContent:"space-between",padding:"9px 14px",borderRadius:8,border:`1.5px solid ${C.border}`,background:openRound===ri?C.redFaint:C.white,color:openRound===ri?C.red:C.ink,cursor:"pointer",fontWeight:700,fontSize:13}}>
-              <span>Round {r.round}</span>
-              <span style={{display:"flex",alignItems:"center",gap:6}}>
-                <span style={{fontSize:11,color:C.muted,fontWeight:400}}>{r.matches.filter(m=>m.status==="finished").length}/{r.matches.length} done</span>
-                <span>{openRound===ri?"▲":"▼"}</span>
-              </span>
-            </button>
-            {openRound===ri&&(
-              <div style={{background:C.surface,border:`1.5px solid ${C.border}`,borderTop:"none",borderRadius:"0 0 8px 8px",padding:"8px 10px"}}>
-                {r.matches.map((m,mi)=>(
-                  <TourneyMatchCard key={mi} match={m} isOfficial={isOfficial} onClick={()=>setModal({match:m,ri,mi})}/>
-                ))}
-              </div>
-            )}
-          </div>
-        ))}
-      </div>
-    </>
-  );
-}
-
-// ─── GROUP + KNOCKOUT VIEW ────────────────────────────────────────────────
-function GroupKnockoutView({ data, sport, isOfficial, onDataUpdate }) {
-  const [activeGroup, setActiveGroup] = useState(0);
-  const [openRound, setOpenRound]     = useState(0);
-  const [modal, setModal]             = useState(null);
-  if (!data?.groups?.length) return <div style={{textAlign:"center",color:C.muted,padding:40}}>No tournament yet.</div>;
-  const { groups, knockout, advancePerGroup } = data;
-  const rankColor = i => [C.gold,C.silver,C.bronze][i]??C.faint;
-
-  const updateGroupMatch = (gi,ri,mi,updated) => {
-    const newGroups = groups.map((g,g2)=>{
-      if(g2!==gi) return g;
-      const newRounds = g.rounds.map((r,r2)=>r2!==ri?r:{...r,matches:r.matches.map((m,m2)=>m2!==mi?m:updated)});
-      const allM = newRounds.flatMap(r=>r.matches);
-      return {...g, rounds:newRounds, standings:recalcStandings(g.members,allM)};
-    });
-    onDataUpdate?.({...data, groups:newGroups});
-  };
-
-  const updateKoMatch = (ri,pi,updated) => {
-    const winner = updated.result==="A"?"A":updated.result==="B"?"B":null;
-    const winnerObj = winner==="A"?updated.pA:winner==="B"?updated.pB:null;
-    let newRounds = knockout.rounds.map((round,r)=>r!==ri?round:round.map((pair,p)=>p!==pi?pair:{...updated,winner}));
-    // Advance winner to the next round (same behaviour as KnockoutView)
-    if(winnerObj && ri+1 < newRounds.length){
-      const nextSlot = Math.floor(pi/2);
-      const isA = pi%2===0;
-      newRounds = newRounds.map((round,r)=>r!==ri+1?round:round.map((pair,p)=>p!==nextSlot?pair:(isA?{...pair,pA:winnerObj}:{...pair,pB:winnerObj})));
-    }
-    onDataUpdate?.({...data, knockout:{...knockout, rounds:newRounds}});
-  };
-
-  const g = activeGroup>=0 ? groups[activeGroup] : null;
-
-  return (
-    <>
-      {modal&&<MatchDetailModal match={modal.match} sport={sport} onClose={()=>setModal(null)}
-        onSave={updated=>{
-          if(modal.type==="group") updateGroupMatch(modal.gi,modal.ri,modal.mi,updated);
-          else updateKoMatch(modal.ri,modal.pi,updated);
-          setModal(null);
-        }}/>}
-      <div style={{display:"flex",gap:6,marginBottom:16,flexWrap:"wrap"}}>
-        {groups.map((grp,gi)=>(
-          <button key={gi} onClick={()=>{setActiveGroup(gi);setOpenRound(0);}}
-            style={{padding:"6px 14px",borderRadius:8,cursor:"pointer",fontWeight:700,fontSize:12,border:`1.5px solid ${activeGroup===gi?C.red:C.border}`,background:activeGroup===gi?C.redFaint:C.white,color:activeGroup===gi?C.red:C.body}}>
-            {grp.name} <span style={{fontSize:10,color:C.muted,fontWeight:400}}>({grp.members.length})</span>
-          </button>
-        ))}
-        <button onClick={()=>setActiveGroup(-1)}
-          style={{padding:"6px 14px",borderRadius:8,cursor:"pointer",fontWeight:700,fontSize:12,border:`1.5px solid ${activeGroup===-1?C.red:C.border}`,background:activeGroup===-1?C.redFaint:C.white,color:activeGroup===-1?C.red:C.body}}>
-          Knockout
-        </button>
-      </div>
-
-      {activeGroup>=0&&g&&(
-        <div>
-          <div style={{fontSize:11,color:C.muted,marginBottom:10}}>Top {advancePerGroup} advance to knockout. {isOfficial&&<span style={{color:C.red}}>Tap a match to edit.</span>}</div>
-          <div style={{background:C.white,border:`1.5px solid ${C.border}`,borderRadius:10,overflow:"hidden",marginBottom:12}}>
-            <div style={{padding:"8px 14px",borderBottom:`1.5px solid ${C.border}`,fontWeight:800,fontSize:11,color:C.ink,display:"flex",gap:8}}>
-              <span style={{flex:1}}>TEAM</span>
-              <span style={{width:26,textAlign:"center",fontSize:10,color:C.muted}}>P</span>
-              <span style={{width:26,textAlign:"center",fontSize:10,color:C.muted}}>W</span>
-              <span style={{width:26,textAlign:"center",fontSize:10,color:C.muted}}>D</span>
-              <span style={{width:26,textAlign:"center",fontSize:10,color:C.muted}}>L</span>
-              <span style={{width:30,textAlign:"center",fontSize:10,color:C.red,fontWeight:800}}>PTS</span>
-            </div>
-            {g.standings.map((p,i)=>(
-              <div key={p.id} style={{display:"flex",alignItems:"center",gap:7,padding:"8px 14px",borderBottom:`1px solid ${C.border}`,background:i<advancePerGroup?"rgba(220,28,28,0.025)":C.white}}>
-                <span style={{width:16,fontWeight:900,color:rankColor(i),fontSize:13}}>{i+1}</span>
-                {i<advancePerGroup&&<span style={{fontSize:9,color:C.red,fontWeight:700,background:C.redFaint,border:"1px solid #FECACA",borderRadius:99,padding:"0 5px",whiteSpace:"nowrap"}}>ADV</span>}
-                <FlagBadge flag={p.flag} size={12}/>
-                <span style={{flex:1,fontWeight:700,fontSize:12,color:C.ink,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{p.name}</span>
-                <span style={{width:26,textAlign:"center",fontSize:12,color:C.muted}}>{p.played}</span>
-                <span style={{width:26,textAlign:"center",fontSize:12,color:C.greenText,fontWeight:700}}>{p.won}</span>
-                <span style={{width:26,textAlign:"center",fontSize:12,color:C.muted}}>{p.drawn}</span>
-                <span style={{width:26,textAlign:"center",fontSize:12,color:C.red}}>{p.lost}</span>
-                <span style={{width:30,textAlign:"center",fontSize:13,fontWeight:900,color:C.red}}>{p.pts}</span>
-              </div>
-            ))}
-          </div>
-          {g.rounds.map((r,ri)=>(
-            <div key={ri} style={{marginBottom:6}}>
-              <button onClick={()=>setOpenRound(openRound===ri?-1:ri)}
-                style={{width:"100%",display:"flex",alignItems:"center",justifyContent:"space-between",padding:"8px 12px",borderRadius:8,border:`1.5px solid ${C.border}`,background:openRound===ri?C.redFaint:C.white,color:openRound===ri?C.red:C.ink,cursor:"pointer",fontWeight:700,fontSize:12}}>
-                <span>Round {r.round}</span>
-                <span style={{display:"flex",alignItems:"center",gap:6}}>
-                  <span style={{fontSize:11,color:C.muted,fontWeight:400}}>{r.matches.filter(m=>m.status==="finished").length}/{r.matches.length} done</span>
-                  <span>{openRound===ri?"▲":"▼"}</span>
-                </span>
-              </button>
-              {openRound===ri&&(
-                <div style={{background:C.surface,border:`1.5px solid ${C.border}`,borderTop:"none",borderRadius:"0 0 8px 8px",padding:"6px 8px"}}>
-                  {r.matches.map((m,mi)=>(
-                    <TourneyMatchCard key={mi} match={m} isOfficial={isOfficial} onClick={()=>setModal({type:"group",match:m,gi:activeGroup,ri,mi})}/>
-                  ))}
-                </div>
-              )}
-            </div>
-          ))}
-        </div>
-      )}
-
-      {activeGroup===-1&&(
-        <div>
-          <div style={{fontSize:11,color:C.muted,marginBottom:12}}>Knockout phase. {isOfficial&&<span style={{color:C.red}}>Tap a match to edit.</span>}</div>
-          <div style={{overflowX:"auto",paddingBottom:8}}>
-            {(()=>{
-              const koRounds=knockout?.rounds??[];
-              if(!koRounds.length) return <div style={{color:C.muted,textAlign:"center",padding:32}}>No knockout bracket yet.</div>;
-              const label=(i,t)=>i===t-1?"Final":i===t-2?"Semi-final":i===t-3?"Quarter-final":`Round ${i+1}`;
-              return <div style={{display:"flex",gap:16,minWidth:koRounds.length*200}}>
-                {koRounds.map((round,ri)=>(
-                  <div key={ri} style={{flex:1,minWidth:185}}>
-                    <div style={{fontSize:10,color:C.red,fontWeight:800,letterSpacing:2,textTransform:"uppercase",marginBottom:10,borderLeft:`3px solid ${C.red}`,paddingLeft:8}}>{label(ri,koRounds.length)}</div>
-                    {round.map((pair,pi)=>{
-                      const pA=pair.pA&&!pair.pA?.isTbd?pair.pA:null;
-                      const pB=pair.pB&&!pair.pB?.isTbd?pair.pB:null;
-                      if(!pA) return <div key={pi} style={{background:C.surface,border:`1.5px solid ${C.border}`,borderRadius:10,padding:"8px 12px",marginBottom:12,fontSize:12,color:C.faint,fontStyle:"italic"}}>TBD</div>;
-                      const matchObj={...pair,pA,pB};
-                      return <TourneyMatchCard key={pi} match={matchObj} isOfficial={isOfficial&&!!pA&&!!pB} onClick={()=>setModal({type:"ko",match:matchObj,ri,pi})}/>;
-                    })}
-                  </div>
-                ))}
-              </div>;
-            })()}
-          </div>
-        </div>
-      )}
-    </>
-  );
-}
-
-// ─── SWISS VIEW ─────────────────────────────────────────────────────────────
-function SwissView({ data, sport, isOfficial, onDataUpdate }) {
-  const [openRound, setOpenRound] = useState(0);
-  const [modal, setModal] = useState(null);
-  if (!data?.rounds?.length) return <div style={{textAlign:"center",color:C.muted,padding:40}}>No Swiss rounds yet.</div>;
-
-  const allMatches = data.rounds.flatMap(r=>r.matches);
-  const standings  = recalcStandings(data.standings, allMatches);
-  const rankColor  = i => [C.gold,C.silver,C.bronze][i]??C.faint;
-
-  const updateMatch = (ri,mi,updated) => {
-    const newRounds = data.rounds.map((r,r2)=>r2!==ri?r:{...r,matches:r.matches.map((m,m2)=>m2!==mi?m:updated)});
-    onDataUpdate?.({...data, rounds:newRounds, standings:recalcStandings(data.standings,newRounds.flatMap(r=>r.matches))});
-  };
-
-  return (
-    <>
-      {modal&&<MatchDetailModal match={modal.match} sport={sport} onClose={()=>setModal(null)} onSave={updated=>{updateMatch(modal.ri,modal.mi,updated);setModal(null);}}/>}
-      <div>
-        <div style={{background:C.white,border:`1.5px solid ${C.border}`,borderRadius:12,overflow:"hidden",marginBottom:16}}>
-          <div style={{padding:"10px 14px",borderBottom:`1.5px solid ${C.border}`,fontWeight:800,fontSize:12,color:C.ink,display:"flex",gap:8}}>
-            <span style={{flex:1}}>SWISS STANDINGS</span>
-            <span style={{width:36,textAlign:"center",fontSize:10,color:C.muted}}>PLAYED</span>
-            <span style={{width:36,textAlign:"center",fontSize:10,color:C.red,fontWeight:800}}>PTS</span>
-          </div>
-          {standings.map((p,i)=>(
-            <div key={p.id} style={{display:"flex",alignItems:"center",gap:8,padding:"9px 14px",borderBottom:`1px solid ${C.border}`,background:i%2===0?C.white:C.surface}}>
-              <span style={{width:20,fontWeight:900,color:rankColor(i),fontSize:14}}>{i+1}</span>
-              <FlagBadge flag={p.flag} size={13}/>
-              <span style={{flex:1,fontWeight:700,fontSize:13,color:C.ink}}>{p.name}</span>
-              <span style={{width:36,textAlign:"center",color:C.muted,fontSize:13}}>{p.played}</span>
-              <span style={{width:36,textAlign:"center",fontWeight:900,color:C.red,fontSize:14}}>{p.pts}</span>
-            </div>
-          ))}
-        </div>
-        <div style={{fontSize:11,color:C.muted,fontWeight:700,letterSpacing:1,marginBottom:8}}>ROUNDS {isOfficial&&<span style={{color:C.red}}>— tap a match to edit</span>}</div>
-        {data.rounds.map((r,ri)=>(
-          <div key={ri} style={{marginBottom:6}}>
-            <button onClick={()=>setOpenRound(openRound===ri?-1:ri)}
-              style={{width:"100%",display:"flex",alignItems:"center",justifyContent:"space-between",padding:"9px 14px",borderRadius:8,border:`1.5px solid ${C.border}`,background:openRound===ri?C.redFaint:C.white,color:openRound===ri?C.red:C.ink,cursor:"pointer",fontWeight:700,fontSize:13}}>
-              <span>Round {r.round}</span>
-              <span style={{display:"flex",alignItems:"center",gap:6}}>
-                <span style={{fontSize:11,color:C.muted,fontWeight:400}}>{r.matches.filter(m=>m.status==="finished").length}/{r.matches.length} done</span>
-                <span>{openRound===ri?"▲":"▼"}</span>
-              </span>
-            </button>
-            {openRound===ri&&(
-              <div style={{background:C.surface,border:`1.5px solid ${C.border}`,borderTop:"none",borderRadius:"0 0 8px 8px",padding:"8px 10px"}}>
-                {r.matches.map((m,mi)=>(
-                  <TourneyMatchCard key={mi} match={m} isOfficial={isOfficial} onClick={()=>setModal({match:m,ri,mi})}/>
-                ))}
-              </div>
-            )}
-          </div>
-        ))}
-      </div>
-    </>
-  );
-}
-
 // ─── PROGRAM CARD ───────────────────────────────────────────────────────────
 function ProgramCard({ e }) {
   return (
@@ -964,36 +565,19 @@ export default function App() {
   const [players] = useState(PLAYERS_INIT);
   const [pairs] = useState(PAIRS_INIT);
   const [programEvents, setProgramEvents] = useState(() => {
-    // Interim persistence (fix #4): survive page refresh on this device.
-    // Proper fix = dedicated Supabase tables (see notes in PR/commit message).
     try {
       const saved = localStorage.getItem("hutribjp_program");
       return saved ? JSON.parse(saved) : seedProgram();
     } catch { return seedProgram(); }
   });
-  const [brackets, setBrackets] = useState(() => {
-    try {
-      const saved = localStorage.getItem("hutribjp_brackets");
-      return saved ? JSON.parse(saved) : {};
-    } catch { return {}; }
-  });
   const [badmintonMatches, setBadmintonMatches] = useState([]);
 
-  // Persist edits so official's changes are not lost on refresh (fix #4)
-  useEffect(() => {
-    try { localStorage.setItem("hutribjp_brackets", JSON.stringify(brackets)); } catch {}
-  }, [brackets]);
   useEffect(() => {
     try { localStorage.setItem("hutribjp_program", JSON.stringify(programEvents)); } catch {}
   }, [programEvents]);
 
-  // Single entry point for all bracket-view edits (fix #4)
-  const updateBracket = (sport, newData) =>
-    setBrackets(b => ({ ...b, [sport]: newData }));
-
   const [view, setView] = useState("schedule");
   const [officialTab, setOfficialTab] = useState("program");
-  const [bracketSport, setBracketSport] = useState(SPORTS[0]);
   const [filterSport, setFilterSport] = useState("All");
   const [filterStatus, setFilterStatus] = useState("All");
   const [filterKind, setFilterKind] = useState("All");
@@ -1021,8 +605,6 @@ export default function App() {
 
   const lookupParticipant = (sport, idOrObj) => {
     if(idOrObj && typeof idOrObj === "object" && !idOrObj.isTbd) return idOrObj;
-    // Defensive: some sources may still pass a plain name string —
-    // wrap it so the UI never silently falls back to "TBD".
     if(typeof idOrObj === "string" && idOrObj && idOrObj !== "TBD")
       return { name: idOrObj, flag: null, club: "" };
     const id = typeof idOrObj === "object" ? idOrObj?.id : idOrObj;
@@ -1031,40 +613,23 @@ export default function App() {
     return players.find(p=>p.id===id);
   };
 
-  // ── Derive all matches from brackets ──────────────────────────────────────
-  const allBracketMatches = () => {
+  // ── Derive all matches ──────────────────────────────────────────────────
+  const allMatches = () => {
     const out = [];
-
-    // Add Badminton matches from Supabase (push ONCE — fix duplicate rendering bug)
     badmintonMatches.forEach(m => {
       out.push({ ...m, kind: 'match' });
     });
-
-    // Add matches from brackets
-    Object.entries(brackets).forEach(([sport, t]) => {
-      if(!t) return;
-      const collect = (match) => {
-        if(!match.pA||match.pA.isTbd) return;
-        out.push({ ...match, sport, kind:"match" });
-      };
-      if(t.format==="knockout")       t.rounds?.forEach(r=>r.forEach(collect));
-      if(t.format==="roundrobin")     t.rounds?.forEach(r=>r.matches?.forEach(collect));
-      if(t.format==="swiss")          t.rounds?.forEach(r=>r.matches?.forEach(collect));
-      if(t.format==="group_knockout") {
-        t.groups?.forEach(g=>g.rounds?.forEach(r=>r.matches?.forEach(collect)));
-        t.knockout?.rounds?.forEach(r=>r.forEach(collect));
-      }
-    });
     return out;
   };
+
   // ── Live ticker ────────────────────────────────────────────────────────────
-  const liveNow = allBracketMatches().filter(m=>m.status==="live");
+  const liveNow = allMatches().filter(m=>m.status==="live");
 
   // ── Schedule matches ──────────────────────────────────────────────────────
-  const scheduleMatches = allBracketMatches().filter(m=>m.date&&m.status!=="finished");
+  const scheduleMatches = allMatches().filter(m=>m.date&&m.status!=="finished");
 
   // ── Results ──────────────────────────────────────────────────────────────
-  const resultMatches = allBracketMatches().filter(m=>m.status==="finished");
+  const resultMatches = allMatches().filter(m=>m.status==="finished");
 
   // ── Combined schedule items ──────────────────────────────────────────────
   const allScheduleItems = [
@@ -1187,7 +752,7 @@ export default function App() {
             )}
           </div>
           <nav style={{display:"flex",gap:2,overflowX:"auto",marginBottom:"-1.5px"}}>
-            {[["schedule","📅 Schedule"],["results","✅ Results"],["bracket","🔢 Brackets"],
+            {[["schedule","📅 Schedule"],["results","✅ Results"],
               ...(official?[["official","⚙️ Officials"]]:[])
             ].map(([v,l])=><button key={v} style={navBtn(view===v)} onClick={()=>setView(v)}>{l}</button>)}
           </nav>
@@ -1251,41 +816,6 @@ export default function App() {
               <div style={{fontSize:12}}>Results appear here once you mark a match as finished.</div>
             </div>
           )}
-        </>}
-
-        {/* ── BRACKETS ── */}
-        {view==="bracket"&&<>
-          <h1 style={{fontSize:22,fontWeight:900,color:C.ink,marginBottom:18}}>Brackets</h1>
-          <div style={{display:"flex",gap:6,flexWrap:"wrap",marginBottom:16}}>
-            {SPORTS.map(s=><button key={s} onClick={()=>setBracketSport(s)} style={ghostBtn(bracketSport===s)}>{SPORT_META[s].emoji} {s}</button>)}
-          </div>
-          {!official&&(
-            <div style={{background:C.redFaint,border:"1.5px solid #FECACA",borderRadius:10,padding:"10px 16px",marginBottom:16,fontSize:12,color:C.body,display:"flex",alignItems:"center",gap:8}}>
-              🔒 Tournament draws are managed by officials.
-              <button onClick={()=>setShowLogin(true)} style={{color:C.red,background:"none",border:"none",cursor:"pointer",fontWeight:700,fontSize:12,textDecoration:"underline"}}>Sign in →</button>
-            </div>
-          )}
-          <div style={{background:C.white,border:`1.5px solid ${C.border}`,borderRadius:12,padding:20,boxShadow:"0 1px 4px rgba(0,0,0,0.04)"}}>
-            {(()=>{
-              const t=brackets[bracketSport];
-              const FL={knockout:"Knockout",roundrobin:"Round Robin",group_knockout:"Group + Knockout",swiss:"Swiss System"};
-              if(!t) return <div style={{textAlign:"center",color:C.muted,padding:48,fontSize:14}}>No tournament drawn yet for {bracketSport}.</div>;
-              return <>
-                <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:16}}>
-                  <span style={{fontWeight:800,fontSize:14,color:C.ink}}>{bracketSport}</span>
-                  <span style={{fontSize:11,fontWeight:700,color:C.red,background:C.redFaint,border:"1px solid #FECACA",borderRadius:99,padding:"2px 9px"}}>{FL[t.format]??t.format}</span>
-                </div>
-                {t.format==="knockout"       &&<KnockoutView rounds={t.rounds} sport={bracketSport} isOfficial={!!official}
-                  onMatchUpdate={newRounds=>updateBracket(bracketSport,{...t,rounds:newRounds})}/>}
-                {t.format==="roundrobin"     &&<RoundRobinView data={t} sport={bracketSport} isOfficial={!!official}
-                  onDataUpdate={d=>updateBracket(bracketSport,d)}/>}
-                {t.format==="group_knockout" &&<GroupKnockoutView data={t} sport={bracketSport} isOfficial={!!official}
-                  onDataUpdate={d=>updateBracket(bracketSport,d)}/>}
-                {t.format==="swiss"          &&<SwissView data={t} sport={bracketSport} isOfficial={!!official}
-                  onDataUpdate={d=>updateBracket(bracketSport,d)}/>}
-              </>;
-            })()}
-          </div>
         </>}
 
         {/* ── OFFICIALS ── */}
