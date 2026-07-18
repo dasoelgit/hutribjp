@@ -100,48 +100,54 @@ async function fetchBadmintonMatches() {
       console.log('No Badminton matches found');
       return [];
     }
-
-    // Convert to app format
-    return data.map(match => {
-      const pA = match.team1_players?.[0]?.name || 'TBD';
-      const pB = match.team2_players?.[0]?.name || 'TBD';
-
-      let status = 'scheduled';
-      if (match.status === 'completed') status = 'finished';
-      else if (match.status === 'in_progress') status = 'live';
-      else if (match.status === 'scheduled') status = 'scheduled';
-
-      let roundLabel = '';
-      if (match.tournament_matches) {
-        const { stage, round } = match.tournament_matches;
-        if (stage === 'group' && round === 1) roundLabel = 'Group Stage';
-        else if (stage === 'knockout' && round === 1) roundLabel = 'Final';
-        else if (stage === 'knockout' && round === 2) roundLabel = 'Semifinal';
-        else roundLabel = `${stage || ''} Round ${round || ''}`;
-      }
-
-      return {
-        id: match.id,
-        sport: 'Badminton',
-        round: roundLabel,
-        pA: pA,
-        pB: pB,
-        date: match.scheduled_date || '',
-        time: match.scheduled_time || '',
-        venue: '',
-        scoreA: match.team1_score ?? null,
-        scoreB: match.team2_score ?? null,
-        status: status,
-        kind: 'match',
-        _raw: match
-      };
-    });
-  } catch (err) {
-    console.error('Error fetching Badminton:', err);
-    return [];
+// Convert to app format
+return data.map(match => {
+  // Extract player names from JSON array
+  let pA = 'TBD';
+  let pB = 'TBD';
+  
+  // team1_players is an array like [{"name": "Okky / Adi"}]
+  if (match.team1_players && Array.isArray(match.team1_players) && match.team1_players.length > 0) {
+    pA = match.team1_players[0].name || 'TBD';
   }
-}
+  
+  if (match.team2_players && Array.isArray(match.team2_players) && match.team2_players.length > 0) {
+    pB = match.team2_players[0].name || 'TBD';
+  }
 
+  // Map status
+  let status = 'scheduled';
+  if (match.status === 'completed' || match.status === 'finished') status = 'finished';
+  else if (match.status === 'in_progress' || match.status === 'live') status = 'live';
+  else if (match.status === 'scheduled') status = 'scheduled';
+
+  // Round label - use the manager's logic
+  let roundLabel = '';
+  if (match.tournament_matches) {
+    const { stage, round } = match.tournament_matches;
+    if (stage === 'group') roundLabel = 'Group Stage';
+    else if (stage === 'knockout' && round === 1) roundLabel = 'Final';
+    else if (stage === 'knockout' && round === 2) roundLabel = 'Semifinal';
+    else roundLabel = `${stage || ''} Round ${round || ''}`;
+  }
+
+  return {
+    id: match.id,
+    sport: 'Badminton',
+    round: roundLabel,
+    pA: pA,
+    pB: pB,
+    date: match.scheduled_date || '',
+    time: match.scheduled_time || '',
+    venue: '',
+    scoreA: match.team1_score ?? null,
+    scoreB: match.team2_score ?? null,
+    status: status,
+    kind: 'match',
+    _raw: match
+  };
+});
+    
 function recalcStandings(members, matches) {
   const st = members.map(p => ({...p, played:0, won:0, drawn:0, lost:0, pts:0}));
   matches.forEach(m => {
