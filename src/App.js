@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from "react";
 import { createClient } from '@supabase/supabase-js';
 
-const LOGO_DATA_URI = "data:image/png;base64,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";
+const LOGO_DATA_URI = "data:image/png;base64,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";
 
 // ─── BADMINTON SUPABASE ──────────────────────────────────────────────────
 const BADMINTON_URL = "https://wrikykevhzwppsqrsxch.supabase.co";
@@ -15,6 +15,23 @@ const sportsSupabase = createClient(SPORTS_URL, SPORTS_KEY);
 
 const CHESS_TABLE = "hut_ri_bjp_2026_chess";
 const DOMINO_TABLE = "hut_ri_bjp_2026_domino";
+
+// ─── VENUE CONFIG ──────────────────────────────────────────────────────────
+const VENUES = {
+  "Badminton": "GOR RW 011 BJP",
+  "Table Tennis": "Lapangan Tenis Meja BJP",
+  "Chess": "Kantor RW 011",
+  "Domino": "Gedung Serbaguna BJP",
+};
+
+const PROGRAM_VENUES = [
+  "GOR RW 011 BJP",
+  "Lapangan Tenis Meja BJP",
+  "Kantor RW 011",
+  "Gedung Serbaguna BJP",
+  "Lapangan Utama RW 011",
+  "Komplek Bintara Jaya Permai",
+];
 
 // ─── DESIGN TOKENS ──────────────────────────────────────────────────────────
 const C = {
@@ -41,12 +58,30 @@ const FlagBadge = ({ flag, size = 18 }) => (
 // ─── SPORT CONFIG ────────────────────────────────────────────────────────────
 const SPORT_META = {
   "Badminton":            { emoji:"🏸", scoringType:"sets",    matchType:"doubles", bestOf:3,  pointsPerSet:21 },
-  "Table Tennis Singles": { emoji:"🏓", scoringType:"sets",    matchType:"singles", bestOf:5,  pointsPerSet:11 },
-  "Table Tennis Doubles": { emoji:"🏓", scoringType:"sets",    matchType:"doubles", bestOf:5,  pointsPerSet:11 },
+  "Table Tennis":         { emoji:"🏓", scoringType:"sets",    matchType:"doubles", bestOf:5,  pointsPerSet:11 },
   "Chess":                { emoji:"♟️", scoringType:"chess",   matchType:"singles", bestOf:1 },
   "Domino":               { emoji:"🀱", scoringType:"points",  matchType:"doubles", bestOf:1 },
 };
 const SPORTS = Object.keys(SPORT_META);
+
+// ─── SPORT DISPLAY NAMES (Indonesian for visitors) ─────────────────────────
+const SPORT_DISPLAY = {
+  "Badminton": "Badminton",
+  "Table Tennis": "Tenis Meja",
+  "Chess": "Catur",
+  "Domino": "Gaple",
+};
+
+// ─── RT OPTIONS ────────────────────────────────────────────────────────────
+const RT_OPTIONS = ["RT 01", "RT 02", "RT 03", "RT 04", "RT 05", "RT 06", "RT 07", "RT 08", "RT 09"];
+
+// ─── ACCOUNTS ──────────────────────────────────────────────────────────────
+const ACCOUNTS = [
+  { id:"admin", username:"admin", password:"giobjp26", role:"admin", badge:"🛡️", label:"Super Admin" },
+  { id:"chess", username:"chess", password:"catur26", role:"chess_admin", badge:"♟️", label:"Chess Admin" },
+  { id:"domino", username:"domino", password:"balak6", role:"domino_admin", badge:"🀱", label:"Domino Admin" },
+  { id:"event", username:"event", password:"hutri26", role:"event_admin", badge:"📌", label:"Event Admin" },
+];
 
 // ─── INITIAL DATA ──────────────────────────────────────────────────────────
 const CLUBS_INIT = [
@@ -70,13 +105,6 @@ const rtFlag = (rtName) => {
   return m ? String(+m[1]).padStart(2,"0") : "09";
 };
 
-const ACCOUNTS = [
-  { id:"admin", username:"admin", password:"giobjp26", role:"admin", badge:"🛡️", label:"Super Admin" },
-  { id:"chess", username:"chess", password:"catur26", role:"chess_admin", badge:"♟️", label:"Chess Admin" },
-  { id:"domino", username:"domino", password:"balak6", role:"domino_admin", badge:"🀱", label:"Domino Admin" },
-  { id:"event", username:"event", password:"hutri26", role:"event_admin", badge:"📌", label:"Event Admin" },
-];
-
 const seedProgram = () => [];
 
 // ─── HELPERS ────────────────────────────────────────────────────────────────
@@ -89,7 +117,7 @@ const countSets = (sets, sport) => {
 
 const fmtDate = d => { 
   try { 
-    return new Date(d+"T00:00:00").toLocaleDateString("en-GB",{weekday:"short",day:"numeric",month:"short"}); 
+    return new Date(d+"T00:00:00").toLocaleDateString("id-ID",{weekday:"short",day:"numeric",month:"short"}); 
   } catch { 
     return d; 
   } 
@@ -112,7 +140,22 @@ async function fetchBadmintonMatches() {
   try {
     const { data, error } = await badmintonSupabase
       .from('matches')
-      .select('id, team1_players, team2_players, team1_score, team2_score, status, scheduled_date, scheduled_time, tournament_matches(stage, round)')
+      .select(`
+        id,
+        team1_players,
+        team2_players,
+        team1_score,
+        team2_score,
+        status,
+        scheduled_date,
+        scheduled_time,
+        tournament_matches!inner(
+          stage,
+          round,
+          tournament_id,
+          tournaments!inner(name)
+        )
+      `)
       .order('scheduled_date', { ascending: true })
       .order('scheduled_time', { ascending: true });
 
@@ -130,11 +173,8 @@ async function fetchBadmintonMatches() {
         if (!Array.isArray(teamPlayers) || teamPlayers.length === 0) return null;
         const valid = teamPlayers.filter(p => p && p.name);
         if (!valid.length) return null;
-        const clubs = [...new Set(valid.map(p => p.club || p.rt).filter(Boolean))];
         return {
           name: valid.map(p => p.name).join(' / '),
-          club: clubs.join(' / ') || '',
-          flag: clubs.length ? rtFlag(clubs[0]) : null,
         };
       };
 
@@ -154,10 +194,14 @@ async function fetchBadmintonMatches() {
         : null;
       const sets = hasScore ? [{ sA: match.team1_score, sB: match.team2_score }] : [];
 
+      let tournamentName = '';
       let roundLabel = '';
       if (match.tournament_matches && Array.isArray(match.tournament_matches) && match.tournament_matches.length > 0) {
         const tm = match.tournament_matches[0];
         if (tm) {
+          if (tm.tournaments) {
+            tournamentName = tm.tournaments.name || '';
+          }
           const { stage, round } = tm;
           if (stage === 'group' && round === 1) roundLabel = 'Group Stage';
           else if (stage === 'knockout' && round === 1) roundLabel = 'Final';
@@ -166,15 +210,18 @@ async function fetchBadmintonMatches() {
         }
       }
 
+      const venue = match.venue || VENUES["Badminton"];
+
       return {
         id: match.id,
         sport: 'Badminton',
+        tournamentName: tournamentName,
         round: roundLabel,
-        pA: pA ?? { name: 'TBD', flag: null, isTbd: true },
-        pB: pB ?? { name: 'TBD', flag: null, isTbd: true },
+        pA: pA ?? { name: 'TBD', isTbd: true },
+        pB: pB ?? { name: 'TBD', isTbd: true },
         date: match.scheduled_date || '',
         time: match.scheduled_time || '',
-        venue: '',
+        venue: venue,
         scoreA: match.team1_score ?? null,
         scoreB: match.team2_score ?? null,
         result: result,
@@ -214,17 +261,21 @@ async function fetchSportMatches(table, sportName) {
       else if (match.status === 'in_progress' || match.status === 'live') status = 'live';
       else if (match.status === 'scheduled' || match.status === 'pending') status = 'scheduled';
 
+      const venue = match.venue || VENUES[sportName] || '';
+
       return {
         id: match.id,
         sport: sportName,
         round: match.round || '',
-        pA: match.pa || match.pA || 'TBD',
-        pB: match.pb || match.pB || 'TBD',
+        pA: match.pA || 'TBD',
+        rtA: match.rtA || '',
+        pB: match.pB || 'TBD',
+        rtB: match.rtB || '',
         date: match.date || '',
         time: match.time || '',
-        venue: match.venue || '',
-        scoreA: match.scorea ?? match.scoreA ?? null,
-        scoreB: match.scoreb ?? match.scoreB ?? null,
+        venue: venue,
+        scoreA: match.scoreA ?? null,
+        scoreB: match.scoreB ?? null,
         status: status,
         kind: 'match',
         _raw: match
@@ -244,7 +295,9 @@ async function saveSportMatch(table, match) {
       .update({
         round: match.round,
         pA: match.pA,
+        rtA: match.rtA,
         pB: match.pB,
+        rtB: match.rtB,
         date: match.date,
         time: match.time,
         venue: match.venue,
@@ -292,7 +345,9 @@ async function addSportMatch(table, match) {
       .insert([{
         round: match.round,
         pA: match.pA,
+        rtA: match.rtA,
         pB: match.pB,
+        rtB: match.rtB,
         date: match.date,
         time: match.time,
         venue: match.venue,
@@ -311,25 +366,6 @@ async function addSportMatch(table, match) {
     console.error('Error adding match:', err);
     return null;
   }
-}
-
-// ─── CSV IMPORT ────────────────────────────────────────────────────────────
-function parseCSV(text) {
-  const lines = text.trim().split('\n').filter(l => l.trim());
-  if (lines.length === 0) return [];
-  
-  const headers = lines[0].split(',').map(h => h.trim().toLowerCase());
-  const result = [];
-  
-  for (let i = 1; i < lines.length; i++) {
-    const values = lines[i].split(',').map(v => v.trim());
-    const obj = {};
-    headers.forEach((h, idx) => {
-      obj[h] = values[idx] || '';
-    });
-    result.push(obj);
-  }
-  return result;
 }
 
 // ─── STATUS CONFIG ──────────────────────────────────────────────────────────
@@ -358,13 +394,8 @@ const SportBadge = ({sport}) => {
 // ─── LOGIN MODAL ────────────────────────────────────────────────────────────
 function LoginModal({ onLogin, onCancel, accounts }) {
   const [u,setU]=useState(""), [p,setP]=useState(""), [err,setErr]=useState("");
-  const attempt=()=>{ 
-    const c=accounts.find(x=>x.username===u && x.password===p); 
-    c ? onLogin(c) : setErr("Invalid credentials."); 
-  };
-  
+  const attempt=()=>{ const c=accounts.find(x=>x.username===u && x.password===p); c?onLogin(c):setErr("Invalid credentials."); };
   const inp={background:C.surface,border:`1.5px solid ${C.border}`,borderRadius:8,color:C.ink,padding:"10px 14px",fontSize:14,width:"100%",boxSizing:"border-box",outline:"none"};
-  
   return (
     <div style={{position:"fixed",inset:0,background:"rgba(26,5,5,0.55)",display:"flex",alignItems:"center",justifyContent:"center",zIndex:400,backdropFilter:"blur(6px)"}}>
       <div style={{background:C.white,border:`1px solid ${C.border}`,borderRadius:20,padding:36,width:380,boxShadow:"0 20px 60px rgba(139,0,0,0.18)"}}>
@@ -390,6 +421,7 @@ function LoginModal({ onLogin, onCancel, accounts }) {
     </div>
   );
 }
+
 // ─── EDIT MODAL ─────────────────────────────────────────────────────────────
 function EditModal({ item, clubs, players, pairs, onSave, onClose }) {
   const [form, setForm] = useState({ ...item });
@@ -466,15 +498,216 @@ function EditModal({ item, clubs, players, pairs, onSave, onClose }) {
   );
 }
 
-// ─── SPORT MANAGEMENT MODAL ────────────────────────────────────────────────
+// ─── SCORE MODAL ────────────────────────────────────────────────────────────
+function ScoreModal({ match, onSave, onClose }) {
+  const [form, setForm] = useState({
+    scoreA: match.scoreA !== null ? String(match.scoreA) : "",
+    scoreB: match.scoreB !== null ? String(match.scoreB) : "",
+    status: match.status || "scheduled"
+  });
+
+  const handleSave = () => {
+    const sA = form.scoreA !== "" ? parseInt(form.scoreA) : null;
+    const sB = form.scoreB !== "" ? parseInt(form.scoreB) : null;
+    onSave({
+      ...match,
+      scoreA: sA,
+      scoreB: sB,
+      status: form.status
+    });
+  };
+
+  const isChess = match.sport === "Chess";
+
+  return (
+    <div style={{
+      position: "fixed",
+      inset: 0,
+      background: "rgba(26,5,5,0.6)",
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "center",
+      zIndex: 500,
+      backdropFilter: "blur(4px)",
+      padding: 16
+    }}>
+      <div style={{
+        background: C.white,
+        borderRadius: 16,
+        padding: 24,
+        width: "100%",
+        maxWidth: 420,
+        maxHeight: "95vh",
+        overflowY: "auto",
+        boxShadow: "0 20px 60px rgba(0,0,0,0.25)"
+      }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
+          <div>
+            <div style={{ fontSize: 18, fontWeight: 800, color: C.ink }}>
+              {SPORT_META[match.sport]?.emoji} {SPORT_DISPLAY[match.sport] || match.sport}
+            </div>
+            {match.round && <div style={{ fontSize: 13, color: C.muted }}>{match.round}</div>}
+          </div>
+          <button onClick={onClose} style={{ background: "none", border: "none", fontSize: 24, cursor: "pointer", color: C.muted, padding: 4 }}>✕</button>
+        </div>
+
+        <div style={{
+          background: C.surface,
+          borderRadius: 10,
+          padding: 14,
+          marginBottom: 16,
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+          gap: 8
+        }}>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            {match.rtA && <FlagBadge flag={rtFlag(match.rtA)} size={14} />}
+            <div style={{ fontSize: 16, fontWeight: 700, color: C.ink, wordBreak: "break-word" }}>{match.pA || "TBD"}</div>
+          </div>
+          <div style={{ display: "flex", flexDirection: "column", alignItems: "center", flexShrink: 0 }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+              <span style={{ fontSize: isChess ? 20 : 24, fontWeight: 900, color: C.ink }}>vs</span>
+            </div>
+          </div>
+          <div style={{ flex: 1, minWidth: 0, textAlign: "right" }}>
+            {match.rtB && <FlagBadge flag={rtFlag(match.rtB)} size={14} />}
+            <div style={{ fontSize: 16, fontWeight: 700, color: C.ink, wordBreak: "break-word" }}>{match.pB || "TBD"}</div>
+          </div>
+        </div>
+
+        <div style={{ display: "flex", gap: 12, marginBottom: 16 }}>
+          <div style={{ flex: 1 }}>
+            <label style={{ fontSize: 12, color: C.muted, fontWeight: 600, display: "block", marginBottom: 4 }}>{match.pA || "A"}</label>
+            <input
+              type="number"
+              min="0"
+              placeholder="0"
+              value={form.scoreA}
+              onChange={e => setForm({ ...form, scoreA: e.target.value })}
+              style={{
+                width: "100%",
+                padding: "14px 10px",
+                fontSize: 22,
+                fontWeight: 700,
+                textAlign: "center",
+                border: `2px solid ${C.border}`,
+                borderRadius: 10,
+                background: C.white,
+                color: C.ink,
+                outline: "none",
+                minHeight: 56
+              }}
+            />
+          </div>
+          <div style={{ flex: 1 }}>
+            <label style={{ fontSize: 12, color: C.muted, fontWeight: 600, display: "block", marginBottom: 4 }}>{match.pB || "B"}</label>
+            <input
+              type="number"
+              min="0"
+              placeholder="0"
+              value={form.scoreB}
+              onChange={e => setForm({ ...form, scoreB: e.target.value })}
+              style={{
+                width: "100%",
+                padding: "14px 10px",
+                fontSize: 22,
+                fontWeight: 700,
+                textAlign: "center",
+                border: `2px solid ${C.border}`,
+                borderRadius: 10,
+                background: C.white,
+                color: C.ink,
+                outline: "none",
+                minHeight: 56
+              }}
+            />
+          </div>
+        </div>
+
+        <div style={{ marginBottom: 16 }}>
+          <label style={{ fontSize: 12, color: C.muted, fontWeight: 600, display: "block", marginBottom: 4 }}>Status</label>
+          <div style={{ display: "flex", gap: 6 }}>
+            {["scheduled", "live", "finished"].map(s => {
+              const st = STATUS[s];
+              const active = form.status === s;
+              return (
+                <button
+                  key={s}
+                  onClick={() => setForm({ ...form, status: s })}
+                  style={{
+                    flex: 1,
+                    padding: "10px 6px",
+                    borderRadius: 8,
+                    border: `2px solid ${active ? st.color : C.border}`,
+                    background: active ? st.bg : C.white,
+                    color: active ? st.color : C.muted,
+                    fontWeight: active ? 700 : 500,
+                    fontSize: 13,
+                    cursor: "pointer",
+                    minHeight: 44
+                  }}
+                >
+                  {s === "live" && "🔴"} {st.label}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
+        <div style={{ display: "flex", gap: 10 }}>
+          <button
+            onClick={onClose}
+            style={{
+              flex: 1,
+              padding: "12px",
+              borderRadius: 10,
+              border: `2px solid ${C.border}`,
+              background: C.white,
+              color: C.muted,
+              cursor: "pointer",
+              fontWeight: 600,
+              fontSize: 16,
+              minHeight: 48
+            }}
+          >
+            Cancel
+          </button>
+          <button
+            onClick={handleSave}
+            style={{
+              flex: 2,
+              padding: "12px",
+              borderRadius: 10,
+              border: "none",
+              background: `linear-gradient(135deg,${C.redDeep},${C.red})`,
+              color: C.white,
+              cursor: "pointer",
+              fontWeight: 700,
+              fontSize: 16,
+              boxShadow: `0 4px 16px ${C.redGlow}`,
+              minHeight: 48
+            }}
+          >
+            💾 Save Score
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── SPORT MATCH MODAL (Add/Edit) ──────────────────────────────────────────
 function SportMatchModal({ sport, match, onSave, onDelete, onClose }) {
   const [form, setForm] = useState(match || {
     round: '',
     pA: '',
+    rtA: '',
     pB: '',
+    rtB: '',
     date: '',
     time: '',
-    venue: '',
+    venue: VENUES[sport] || '',
     status: 'scheduled'
   });
   const isEdit = !!match?.id;
@@ -487,29 +720,45 @@ function SportMatchModal({ sport, match, onSave, onDelete, onClose }) {
     onSave(form);
   };
 
-  const inp = { background: C.surface, border: `1.5px solid ${C.border}`, borderRadius: 8, color: C.ink, padding: "9px 12px", fontSize: 13, width: "100%", boxSizing: "border-box" };
-  const lbl = { fontSize: 10, color: C.muted, fontWeight: 700, display: "block", marginBottom: 4, letterSpacing: 1 };
+  const inp = { background: C.surface, border: `1.5px solid ${C.border}`, borderRadius: 8, color: C.ink, padding: "10px 12px", fontSize: 14, width: "100%", boxSizing: "border-box", minHeight: 44 };
+  const lbl = { fontSize: 11, color: C.muted, fontWeight: 600, display: "block", marginBottom: 4 };
 
   return (
-    <div style={{ position: "fixed", inset: 0, background: "rgba(26,5,5,0.55)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 500, backdropFilter: "blur(4px)" }}>
-      <div style={{ background: C.white, border: `1.5px solid ${C.border}`, borderRadius: 16, padding: 24, width: 500, maxWidth: "95vw", maxHeight: "90vh", overflowY: "auto", boxShadow: "0 20px 60px rgba(0,0,0,0.2)" }}>
+    <div style={{ position: "fixed", inset: 0, background: "rgba(26,5,5,0.6)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 500, backdropFilter: "blur(4px)", padding: 16 }}>
+      <div style={{ background: C.white, borderRadius: 16, padding: 24, width: "100%", maxWidth: 480, maxHeight: "95vh", overflowY: "auto", boxShadow: "0 20px 60px rgba(0,0,0,0.2)" }}>
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16 }}>
-          <div style={{ fontWeight: 800, fontSize: 16, color: C.ink }}>{isEdit ? "Edit" : "Add"} {sport} Match</div>
-          <button onClick={onClose} style={{ background: "none", border: "none", cursor: "pointer", fontSize: 20, color: C.muted, lineHeight: 1 }}>✕</button>
+          <div style={{ fontWeight: 800, fontSize: 18, color: C.ink }}>{isEdit ? "Edit" : "Add"} {SPORT_DISPLAY[sport] || sport}</div>
+          <button onClick={onClose} style={{ background: "none", border: "none", cursor: "pointer", fontSize: 24, color: C.muted, padding: 4 }}>✕</button>
         </div>
 
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
-          <div><label style={lbl}>ROUND *</label><input style={inp} value={form.round} onChange={e => setForm({ ...form, round: e.target.value })} placeholder="Round 1, Final..." /></div>
-          <div><label style={lbl}>VENUE</label><input style={inp} value={form.venue || ''} onChange={e => setForm({ ...form, venue: e.target.value })} placeholder="Venue" /></div>
-          <div><label style={lbl}>PLAYER A *</label><input style={inp} value={form.pA} onChange={e => setForm({ ...form, pA: e.target.value })} placeholder="Player A" /></div>
-          <div><label style={lbl}>PLAYER B *</label><input style={inp} value={form.pB} onChange={e => setForm({ ...form, pB: e.target.value })} placeholder="Player B" /></div>
-          <div><label style={lbl}>DATE *</label><input style={inp} type="date" value={form.date} onChange={e => setForm({ ...form, date: e.target.value })} /></div>
-          <div><label style={lbl}>TIME</label><input style={inp} type="time" value={form.time || ''} onChange={e => setForm({ ...form, time: e.target.value })} /></div>
+          <div><label style={lbl}>Round *</label><input style={inp} value={form.round} onChange={e => setForm({ ...form, round: e.target.value })} placeholder="Round 1, Final..." /></div>
+          <div><label style={lbl}>Venue</label>
+            <select style={inp} value={form.venue} onChange={e => setForm({ ...form, venue: e.target.value })}>
+              {PROGRAM_VENUES.map(v => <option key={v} value={v}>{v}</option>)}
+            </select>
+          </div>
+          <div><label style={lbl}>Player A *</label><input style={inp} value={form.pA} onChange={e => setForm({ ...form, pA: e.target.value })} placeholder="Player A" /></div>
+          <div><label style={lbl}>RT A</label>
+            <select style={inp} value={form.rtA} onChange={e => setForm({ ...form, rtA: e.target.value })}>
+              <option value="">Select RT</option>
+              {RT_OPTIONS.map(rt => <option key={rt} value={rt}>{rt}</option>)}
+            </select>
+          </div>
+          <div><label style={lbl}>Player B *</label><input style={inp} value={form.pB} onChange={e => setForm({ ...form, pB: e.target.value })} placeholder="Player B" /></div>
+          <div><label style={lbl}>RT B</label>
+            <select style={inp} value={form.rtB} onChange={e => setForm({ ...form, rtB: e.target.value })}>
+              <option value="">Select RT</option>
+              {RT_OPTIONS.map(rt => <option key={rt} value={rt}>{rt}</option>)}
+            </select>
+          </div>
+          <div><label style={lbl}>Date *</label><input style={inp} type="date" value={form.date} onChange={e => setForm({ ...form, date: e.target.value })} /></div>
+          <div><label style={lbl}>Time</label><input style={inp} type="time" value={form.time || ''} onChange={e => setForm({ ...form, time: e.target.value })} /></div>
         </div>
 
         {isEdit && (
           <div style={{ marginTop: 12 }}>
-            <label style={lbl}>STATUS</label>
+            <label style={lbl}>Status</label>
             <select style={inp} value={form.status} onChange={e => setForm({ ...form, status: e.target.value })}>
               <option value="scheduled">Scheduled</option>
               <option value="live">Live</option>
@@ -519,95 +768,16 @@ function SportMatchModal({ sport, match, onSave, onDelete, onClose }) {
         )}
 
         <div style={{ display: "flex", gap: 10, marginTop: 16 }}>
-          <button onClick={onClose} style={{ flex: 1, padding: "10px", borderRadius: 8, border: `1.5px solid ${C.border}`, background: C.white, color: C.muted, cursor: "pointer", fontWeight: 600 }}>Cancel</button>
-          <button onClick={handleSubmit} style={{ flex: 2, padding: "10px", borderRadius: 8, border: "none", background: `linear-gradient(135deg,${C.redDeep},${C.red})`, color: C.white, cursor: "pointer", fontWeight: 800, fontSize: 14, boxShadow: `0 4px 16px ${C.redGlow}` }}>
-            {isEdit ? "💾 Save" : "➕ Add Match"}
+          <button onClick={onClose} style={{ flex: 1, padding: "12px", borderRadius: 10, border: `2px solid ${C.border}`, background: C.white, color: C.muted, cursor: "pointer", fontWeight: 600, fontSize: 15, minHeight: 48 }}>Cancel</button>
+          <button onClick={handleSubmit} style={{ flex: 2, padding: "12px", borderRadius: 10, border: "none", background: `linear-gradient(135deg,${C.redDeep},${C.red})`, color: C.white, cursor: "pointer", fontWeight: 700, fontSize: 15, boxShadow: `0 4px 16px ${C.redGlow}`, minHeight: 48 }}>
+            {isEdit ? "💾 Save" : "➕ Add"}
           </button>
         </div>
         {isEdit && (
-          <button onClick={onDelete} style={{ marginTop: 10, width: "100%", padding: "8px", borderRadius: 8, border: "1.5px solid #FECACA", background: C.redFaint, color: C.red, cursor: "pointer", fontWeight: 700, fontSize: 13 }}>
-            🗑 Delete Match
+          <button onClick={onDelete} style={{ marginTop: 10, width: "100%", padding: "10px", borderRadius: 10, border: "2px solid #FECACA", background: C.redFaint, color: C.red, cursor: "pointer", fontWeight: 600, fontSize: 14, minHeight: 44 }}>
+            🗑 Delete
           </button>
         )}
-      </div>
-    </div>
-  );
-}
-
-// ─── CSV IMPORT MODAL ─────────────────────────────────────────────────────
-function CSVImportModal({ sport, onImport, onClose }) {
-  const [csvText, setCsvText] = useState('');
-  const [preview, setPreview] = useState([]);
-
-  const handlePreview = () => {
-    const parsed = parseCSV(csvText);
-    setPreview(parsed);
-  };
-
-  const handleImport = () => {
-    if (preview.length === 0) return;
-    onImport(preview);
-    onClose();
-  };
-
-  const template = `round,pA,pB,date,time,venue\nRound 1,Player A,Player B,2026-07-20,09:00,Venue\nFinal,TBD,TBD,2026-07-25,16:00,Main Hall`;
-
-  const inp = { background: C.surface, border: `1.5px solid ${C.border}`, borderRadius: 8, color: C.ink, padding: "9px 12px", fontSize: 13, width: "100%", boxSizing: "border-box" };
-  const lbl = { fontSize: 10, color: C.muted, fontWeight: 700, display: "block", marginBottom: 4, letterSpacing: 1 };
-
-  return (
-    <div style={{ position: "fixed", inset: 0, background: "rgba(26,5,5,0.55)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 500, backdropFilter: "blur(4px)" }}>
-      <div style={{ background: C.white, border: `1.5px solid ${C.border}`, borderRadius: 16, padding: 24, width: 550, maxWidth: "95vw", maxHeight: "90vh", overflowY: "auto", boxShadow: "0 20px 60px rgba(0,0,0,0.2)" }}>
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16 }}>
-          <div style={{ fontWeight: 800, fontSize: 16, color: C.ink }}>📥 Import {sport} Matches from CSV</div>
-          <button onClick={onClose} style={{ background: "none", border: "none", cursor: "pointer", fontSize: 20, color: C.muted, lineHeight: 1 }}>✕</button>
-        </div>
-
-        <div style={{ marginBottom: 12 }}>
-          <label style={lbl}>CSV FORMAT</label>
-          <div style={{ background: C.surface, borderRadius: 8, padding: 8, fontSize: 11, fontFamily: "monospace", color: C.muted, border: `1px solid ${C.border}` }}>
-            {template}
-          </div>
-          <div style={{ fontSize: 11, color: C.muted, marginTop: 4 }}>Download template: copy above or create your own.</div>
-        </div>
-
-        <div style={{ marginBottom: 12 }}>
-          <label style={lbl}>PASTE CSV DATA</label>
-          <textarea
-            style={{ ...inp, height: 140, fontFamily: "monospace", fontSize: 12, resize: "vertical" }}
-            value={csvText}
-            onChange={e => { setCsvText(e.target.value); setPreview([]); }}
-            placeholder={template}
-          />
-        </div>
-
-        <button onClick={handlePreview} style={{ padding: "6px 16px", borderRadius: 6, border: `1.5px solid ${C.bluBorder}`, background: C.bluBg, color: C.bluText, cursor: "pointer", fontWeight: 600, fontSize: 13, marginBottom: 12 }}>
-          Preview
-        </button>
-
-        {preview.length > 0 && (
-          <div style={{ marginBottom: 12 }}>
-            <div style={{ fontWeight: 700, fontSize: 13, color: C.ink, marginBottom: 6 }}>{preview.length} matches found:</div>
-            <div style={{ background: C.surface, borderRadius: 8, padding: 8, maxHeight: 150, overflow: "auto", border: `1px solid ${C.border}` }}>
-              {preview.slice(0, 10).map((row, i) => (
-                <div key={i} style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr 1fr", gap: 4, fontSize: 11, padding: "2px 0", borderBottom: i < preview.length - 1 ? `1px solid ${C.border}` : 'none' }}>
-                  <span>{row.round || '-'}</span>
-                  <span>{row.pA || '-'}</span>
-                  <span>{row.pB || '-'}</span>
-                  <span>{row.date || '-'}</span>
-                </div>
-              ))}
-              {preview.length > 10 && <div style={{ fontSize: 11, color: C.muted, paddingTop: 4 }}>...and {preview.length - 10} more</div>}
-            </div>
-          </div>
-        )}
-
-        <div style={{ display: "flex", gap: 10 }}>
-          <button onClick={onClose} style={{ flex: 1, padding: "10px", borderRadius: 8, border: `1.5px solid ${C.border}`, background: C.white, color: C.muted, cursor: "pointer", fontWeight: 600 }}>Cancel</button>
-          <button onClick={handleImport} disabled={preview.length === 0} style={{ flex: 2, padding: "10px", borderRadius: 8, border: "none", background: preview.length > 0 ? `linear-gradient(135deg,${C.redDeep},${C.red})` : '#ccc', color: C.white, cursor: preview.length > 0 ? "pointer" : "not-allowed", fontWeight: 800, fontSize: 14 }}>
-            ✅ Import {preview.length} Matches
-          </button>
-        </div>
       </div>
     </div>
   );
@@ -616,16 +786,15 @@ function CSVImportModal({ sport, onImport, onClose }) {
 // ─── SPORT MANAGEMENT VIEW ────────────────────────────────────────────────
 function SportManagement({ sport, matches, onAdd, onEdit, onDelete, onRefresh, showToast }) {
   const [showAddModal, setShowAddModal] = useState(false);
-  const [showImportModal, setShowImportModal] = useState(false);
   const [editingMatch, setEditingMatch] = useState(null);
 
   const handleSave = async (form) => {
     if (editingMatch) {
       const updated = await onEdit(editingMatch.id, form);
-      if (updated) showToast(`${sport} match updated!`);
+      if (updated) showToast(`${SPORT_DISPLAY[sport] || sport} match updated!`);
     } else {
       const added = await onAdd(form);
-      if (added) showToast(`${sport} match added!`);
+      if (added) showToast(`${SPORT_DISPLAY[sport] || sport} match added!`);
     }
     setShowAddModal(false);
     setEditingMatch(null);
@@ -642,52 +811,39 @@ function SportManagement({ sport, matches, onAdd, onEdit, onDelete, onRefresh, s
     }
   };
 
-  const handleImport = async (rows) => {
-    let count = 0;
-    for (const row of rows) {
-      if (row.round && row.pA && row.pB && row.date) {
-        const added = await onAdd(row);
-        if (added) count++;
-      }
-    }
-    if (count > 0) showToast(`${count} ${sport} matches imported!`);
-    onRefresh();
-  };
-
   const icon = sport === 'Chess' ? '♟️' : '🀱';
 
   const sorted = [...matches].sort((a, b) => (a.date || '').localeCompare(b.date || '') || (a.time || '').localeCompare(b.time || ''));
 
   return (
-    <div style={{ background: C.white, border: `1.5px solid ${C.border}`, borderRadius: 12, padding: 22, boxShadow: "0 1px 4px rgba(0,0,0,0.04)" }}>
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 12 }}>
-        <div style={{ fontWeight: 800, fontSize: 15, color: C.ink }}>{icon} {sport} Management</div>
-        <div style={{ display: "flex", gap: 8 }}>
-          <button onClick={() => setShowImportModal(true)} style={{ padding: "6px 12px", borderRadius: 6, border: `1.5px solid ${C.bluBorder}`, background: C.bluBg, color: C.bluText, cursor: "pointer", fontWeight: 600, fontSize: 12 }}>📥 Import CSV</button>
-          <button onClick={() => { setEditingMatch(null); setShowAddModal(true); }} style={{ padding: "6px 14px", borderRadius: 6, border: "none", background: `linear-gradient(135deg,${C.redDeep},${C.red})`, color: C.white, cursor: "pointer", fontWeight: 700, fontSize: 12 }}>+ Add Match</button>
-        </div>
+    <div style={{ background: C.white, border: `1.5px solid ${C.border}`, borderRadius: 12, padding: 16, boxShadow: "0 1px 4px rgba(0,0,0,0.04)" }}>
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 12, flexWrap: "wrap", gap: 8 }}>
+        <div style={{ fontWeight: 800, fontSize: 16, color: C.ink }}>{icon} {SPORT_DISPLAY[sport] || sport}</div>
+        <button onClick={() => { setEditingMatch(null); setShowAddModal(true); }} style={{ padding: "8px 16px", borderRadius: 8, border: "none", background: `linear-gradient(135deg,${C.redDeep},${C.red})`, color: C.white, cursor: "pointer", fontWeight: 700, fontSize: 14, minHeight: 44 }}>+ Add</button>
       </div>
 
       {sorted.length === 0 ? (
-        <div style={{ textAlign: "center", color: C.faint, padding: 32, fontSize: 13 }}>No {sport} matches yet. Add one or import CSV.</div>
+        <div style={{ textAlign: "center", color: C.faint, padding: 32, fontSize: 14 }}>No {sport} matches yet.</div>
       ) : (
         <div style={{ maxHeight: 400, overflowY: "auto" }}>
           {sorted.map(m => (
             <div key={m.id} style={{ background: C.surface, border: `1.5px solid ${C.border}`, borderRadius: 8, padding: "10px 14px", marginBottom: 6, display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 6 }}>
-              <div style={{ display: "flex", alignItems: "center", gap: 8, flex: 1, minWidth: 180 }}>
-                <span style={{ fontSize: 11, fontWeight: 700, color: C.muted }}>{m.round || '—'}</span>
-                <span style={{ fontSize: 13, fontWeight: 600, color: C.ink }}>{m.pA}</span>
+              <div style={{ display: "flex", alignItems: "center", gap: 8, flex: 1, minWidth: 140 }}>
+                <span style={{ fontSize: 12, fontWeight: 700, color: C.muted }}>{m.round || '—'}</span>
+                {m.rtA && <FlagBadge flag={rtFlag(m.rtA)} size={12} />}
+                <span style={{ fontSize: 13, fontWeight: 600, color: C.ink, wordBreak: "break-word" }}>{m.pA}</span>
                 <span style={{ color: C.faint }}>vs</span>
-                <span style={{ fontSize: 13, fontWeight: 600, color: C.ink }}>{m.pB}</span>
+                {m.rtB && <FlagBadge flag={rtFlag(m.rtB)} size={12} />}
+                <span style={{ fontSize: 13, fontWeight: 600, color: C.ink, wordBreak: "break-word" }}>{m.pB}</span>
               </div>
-              <div style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 11, color: C.muted }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 12, color: C.muted, flexWrap: "wrap" }}>
                 <span>{m.date || '—'}</span>
                 <span>{m.time ? fmtTime(m.time) : '—'}</span>
                 <Pill status={m.status} />
               </div>
               <div style={{ display: "flex", gap: 4 }}>
-                <button onClick={() => { setEditingMatch(m); setShowAddModal(true); }} style={{ fontSize: 11, padding: "2px 8px", borderRadius: 4, border: `1px solid ${C.border}`, background: C.white, cursor: "pointer" }}>✏️</button>
-                <button onClick={async () => { if (window.confirm(`Delete this ${sport} match?`)) { await onDelete(m.id); onRefresh(); showToast(`${sport} match deleted!`); } }} style={{ fontSize: 11, padding: "2px 8px", borderRadius: 4, border: "1px solid #FECACA", background: C.redFaint, color: C.red, cursor: "pointer" }}>🗑</button>
+                <button onClick={() => { setEditingMatch(m); setShowAddModal(true); }} style={{ fontSize: 13, padding: "4px 10px", borderRadius: 6, border: `1.5px solid ${C.border}`, background: C.white, cursor: "pointer", minHeight: 36 }}>✏️</button>
+                <button onClick={async () => { if (window.confirm(`Delete this match?`)) { await onDelete(m.id); onRefresh(); showToast(`Match deleted!`); } }} style={{ fontSize: 13, padding: "4px 10px", borderRadius: 6, border: "1.5px solid #FECACA", background: C.redFaint, color: C.red, cursor: "pointer", minHeight: 36 }}>🗑</button>
               </div>
             </div>
           ))}
@@ -703,14 +859,6 @@ function SportManagement({ sport, matches, onAdd, onEdit, onDelete, onRefresh, s
           onClose={() => { setShowAddModal(false); setEditingMatch(null); }}
         />
       )}
-
-      {showImportModal && (
-        <CSVImportModal
-          sport={sport}
-          onImport={handleImport}
-          onClose={() => setShowImportModal(false)}
-        />
-      )}
     </div>
   );
 }
@@ -720,106 +868,203 @@ function ProgramCard({ e }) {
   return (
     <div style={{background:C.white,border:`1.5px solid ${C.border}`,borderRadius:12,padding:16,boxShadow:"0 1px 3px rgba(0,0,0,0.04)"}}>
       <div style={{display:"flex",gap:8,alignItems:"center",marginBottom:6,flexWrap:"wrap"}}>
-        <span style={{fontSize:11,fontWeight:700,color:C.red,textTransform:"uppercase",letterSpacing:1}}>📋 Program</span>
-        {e.audience&&e.audience!=="All"&&<span style={{fontSize:11,color:C.muted,background:C.surface,border:`1px solid ${C.border}`,borderRadius:99,padding:"2px 8px"}}>👤 {e.audience}</span>}
+        <span style={{fontSize:12,fontWeight:700,color:C.red,textTransform:"uppercase",letterSpacing:1}}>📋 Program</span>
+        {e.audience&&e.audience!=="All"&&<span style={{fontSize:12,color:C.muted,background:C.surface,border:`1px solid ${C.border}`,borderRadius:99,padding:"2px 10px"}}>👤 {e.audience}</span>}
       </div>
-      <div style={{fontWeight:800,fontSize:15,color:C.ink,marginBottom:4}}>{e.title||<span style={{color:C.faint,fontStyle:"italic"}}>Event title</span>}</div>
-      {e.description&&<div style={{fontSize:12,color:C.body,lineHeight:1.5,marginBottom:6}}>{e.description}</div>}
-      <div style={{fontSize:12,color:C.muted}}>📍 {e.venue||"TBA"}</div>
+      <div style={{fontWeight:800,fontSize:16,color:C.ink,marginBottom:4,wordBreak:"break-word"}}>{e.title||<span style={{color:C.faint,fontStyle:"italic"}}>Event title</span>}</div>
+      {e.description&&<div style={{fontSize:13,color:C.body,lineHeight:1.5,marginBottom:6,wordBreak:"break-word"}}>{e.description}</div>}
+      <div style={{fontSize:13,color:C.muted}}>📍 {e.venue||"TBA"}</div>
     </div>
   );
 }
 
 // ─── MATCH CARD ─────────────────────────────────────────────────────────────
-function MatchCard({ m, lookupParticipant }) {
+function MatchCard({ m, lookupParticipant, onClick }) {
   const meta=SPORT_META[m.sport]??{emoji:"🏅",scoringType:"points"};
-  const pA=lookupParticipant(m.sport,m.pA);
-  const pB=lookupParticipant(m.sport,m.pB);
+  
+  let pA, pB;
+  if (m.sport === 'Badminton') {
+    pA = m.pA || { name: 'TBD', isTbd: true };
+    pB = m.pB || { name: 'TBD', isTbd: true };
+  } else {
+    pA = lookupParticipant(m.sport, m.pA);
+    pB = lookupParticipant(m.sport, m.pB);
+  }
+  
   const res=m.result;
   const [setsA,setsB]=countSets(m.sets,m.sport);
+  
+  const canClick = (m.sport === "Chess" || m.sport === "Domino") && m.status !== "finished";
+  const hasRT = m.rtA || m.rtB;
 
-  const Name=({p,side})=>{
+  const NameA = ({p,side})=>{
     if(!p||p.isTbd) return <span style={{color:C.faint}}>TBD</span>;
     const won=res===side;
-    return <div style={{display:"flex",alignItems:"center",gap:7,flex:1,minWidth:0}}>
-      {p.flag&&<FlagBadge flag={p.flag} size={16}/>}
-      <div style={{minWidth:0}}>
-        <div style={{fontWeight:won?900:700,fontSize:14,color:won?C.ink:C.body,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{p.name}</div>
-        {p.club&&<div style={{fontSize:10,color:C.muted}}>{p.club}</div>}
+    return (
+      <div style={{display:"flex",alignItems:"center",gap:6,flex:1,minWidth:0}}>
+        {hasRT && m.rtA && <FlagBadge flag={rtFlag(m.rtA)} size={14} />}
+        <div style={{minWidth:0,flex:1}}>
+          <div style={{
+            fontWeight: won ? 900 : 600,
+            fontSize: 13,
+            color: won ? C.ink : C.body,
+            wordBreak: "break-word",
+            lineHeight: 1.3
+          }}>
+            {p.name}
+          </div>
+          {hasRT && m.rtA && <div style={{fontSize:10,color:C.muted}}>{m.rtA}</div>}
+        </div>
+        {won && <span style={{fontSize:14,flexShrink:0}}>🏆</span>}
       </div>
-      {won&&<span style={{fontSize:14,flexShrink:0}}>🏆</span>}
-    </div>;
+    );
+  };
+
+  const NameB = ({p,side})=>{
+    if(!p||p.isTbd) return <span style={{color:C.faint}}>TBD</span>;
+    const won=res===side;
+    return (
+      <div style={{display:"flex",alignItems:"center",gap:6,flex:1,minWidth:0,justifyContent:"flex-end"}}>
+        {won && <span style={{fontSize:14,flexShrink:0}}>🏆</span>}
+        <div style={{minWidth:0,textAlign:"right",flex:1}}>
+          <div style={{
+            fontWeight: won ? 900 : 600,
+            fontSize: 13,
+            color: won ? C.ink : C.body,
+            wordBreak: "break-word",
+            lineHeight: 1.3
+          }}>
+            {p.name}
+          </div>
+          {hasRT && m.rtB && <div style={{fontSize:10,color:C.muted}}>{m.rtB}</div>}
+        </div>
+        {hasRT && m.rtB && <FlagBadge flag={rtFlag(m.rtB)} size={14} />}
+      </div>
+    );
   };
 
   const Score = () => {
-    // For Badminton, show direct score without "Set" label
-    if (m.sport === 'Badminton') {
-      if (m.status === 'scheduled' || m.scoreA === null || m.scoreB === null) {
-        return <div style={{color:C.faint,fontWeight:700,fontSize:18,textAlign:"center",padding:"0 12px"}}>vs</div>;
-      }
+    if (m.status === "scheduled") {
       return (
-        <div style={{display:"flex",alignItems:"center",gap:6,padding:"0 8px"}}>
-          <span style={{fontSize:26,fontWeight:900,color:m.scoreA > m.scoreB ? C.ink : C.muted}}>
-            {m.scoreA}
-          </span>
-          <span style={{color:C.faint,fontSize:16}}>–</span>
-          <span style={{fontSize:26,fontWeight:900,color:m.scoreB > m.scoreA ? C.ink : C.muted}}>
-            {m.scoreB}
+        <div style={{
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          padding: "0 4px",
+          minWidth: 44
+        }}>
+          <span style={{color:C.faint,fontWeight:600,fontSize:13}}>
+            {canClick ? "Tap →" : "vs"}
           </span>
         </div>
       );
     }
+    
+    if (m.sport === 'Badminton') {
+      if (m.scoreA === null || m.scoreB === null) {
+        return <div style={{color:C.faint,fontWeight:600,fontSize:13,minWidth:44,textAlign:"center"}}>vs</div>;
+      }
+      return (
+        <div style={{display:"flex",alignItems:"center",gap:3,minWidth:44,justifyContent:"center"}}>
+          <span style={{fontSize:18,fontWeight:900,color:m.scoreA > m.scoreB ? C.ink : C.muted}}>{m.scoreA}</span>
+          <span style={{color:C.faint,fontSize:14}}>–</span>
+          <span style={{fontSize:18,fontWeight:900,color:m.scoreB > m.scoreA ? C.ink : C.muted}}>{m.scoreB}</span>
+        </div>
+      );
+    }
 
-    // For other sports (Chess, Domino, etc.)
-    if (m.status === "scheduled") {
-      return <div style={{color:C.faint,fontWeight:700,fontSize:18,textAlign:"center",padding:"0 12px"}}>vs</div>;
-    }
     if (meta.scoringType === "chess") {
-      const label = res === "A" ? "1 – 0" : res === "B" ? "0 – 1" : "½ – ½";
-      return <div style={{textAlign:"center",padding:"0 12px"}}><div style={{fontSize:20,fontWeight:900,color:C.ink}}>{label}</div></div>;
+      const label = res === "A" ? "1–0" : res === "B" ? "0–1" : "½–½";
+      return <div style={{fontSize:18,fontWeight:800,color:C.ink,minWidth:44,textAlign:"center"}}>{label}</div>;
     }
+    
     if (meta.scoringType === "points") {
       const sA = meta.scoringType === "points" && m.sets?.length ? m.sets[0].sA : setsA;
       const sB = meta.scoringType === "points" && m.sets?.length ? m.sets[0].sB : setsB;
-      return <div style={{display:"flex",alignItems:"center",gap:6,padding:"0 8px"}}>
-        <span style={{fontSize:26,fontWeight:900,color:res === "A" ? C.ink : C.muted}}>{sA}</span>
-        <span style={{color:C.faint,fontSize:16}}>–</span>
-        <span style={{fontSize:26,fontWeight:900,color:res === "B" ? C.ink : C.muted}}>{sB}</span>
-      </div>;
+      return (
+        <div style={{display:"flex",alignItems:"center",gap:3,minWidth:44,justifyContent:"center"}}>
+          <span style={{fontSize:18,fontWeight:900,color:res === "A" ? C.ink : C.muted}}>{sA}</span>
+          <span style={{color:C.faint,fontSize:14}}>–</span>
+          <span style={{fontSize:18,fontWeight:900,color:res === "B" ? C.ink : C.muted}}>{sB}</span>
+        </div>
+      );
     }
-    return <div style={{display:"flex",flexDirection:"column",alignItems:"center",gap:3,padding:"0 8px"}}>
-      <div style={{display:"flex",alignItems:"center",gap:6}}>
-        <span style={{fontSize:24,fontWeight:900,color:res === "A" ? C.ink : C.muted}}>{setsA}</span>
-        <span style={{color:C.faint,fontSize:14}}>–</span>
-        <span style={{fontSize:24,fontWeight:900,color:res === "B" ? C.ink : C.muted}}>{setsB}</span>
+    
+    return (
+      <div style={{display:"flex",flexDirection:"column",alignItems:"center",minWidth:44}}>
+        <div style={{display:"flex",alignItems:"center",gap:3}}>
+          <span style={{fontSize:18,fontWeight:900,color:res === "A" ? C.ink : C.muted}}>{setsA}</span>
+          <span style={{color:C.faint,fontSize:14}}>–</span>
+          <span style={{fontSize:18,fontWeight:900,color:res === "B" ? C.ink : C.muted}}>{setsB}</span>
+        </div>
+        {m.sets?.length > 0 && <div style={{display:"flex",gap:2}}>
+          {m.sets.map((s,i) => <span key={i} style={{fontSize:9,color:C.muted}}>{s.sA}-{s.sB}</span>)}
+        </div>}
       </div>
-      {m.sets?.length > 0 && <div style={{display:"flex",gap:4}}>
-        {m.sets.map((s,i) => <span key={i} style={{fontSize:10,color:C.muted,background:C.surface,borderRadius:4,padding:"1px 5px",border:`1px solid ${C.border}`}}>{s.sA}-{s.sB}</span>)}
-      </div>}
-    </div>;
+    );
   };
 
+  const tournamentBadge = m.sport === 'Badminton' && m.tournamentName ? (
+    <span style={{
+      fontSize: 10,
+      fontWeight: 700,
+      color: C.red,
+      background: C.redFaint,
+      border: `1px solid #FECACA`,
+      borderRadius: 99,
+      padding: "1px 10px"
+    }}>
+      {m.tournamentName}
+    </span>
+  ) : null;
+
   return (
-    <div style={{background:C.white,border:`1.5px solid ${m.status==="live"?"#FECACA":C.border}`,borderRadius:12,padding:16,boxShadow:m.status==="live"?`0 0 0 3px ${C.redFaint},0 2px 8px rgba(139,0,0,0.08)`:"0 1px 3px rgba(0,0,0,0.04)"}}>
-      <div style={{display:"flex",gap:8,alignItems:"center",marginBottom:12,flexWrap:"wrap"}}>
+    <div 
+      onClick={canClick ? onClick : undefined}
+      style={{
+        background: C.white,
+        border: `1.5px solid ${m.status === "live" ? "#FECACA" : m.status === "finished" ? C.greenBorder : C.border}`,
+        borderRadius: 10,
+        padding: "12px 14px",
+        marginBottom: 8,
+        boxShadow: m.status === "live" ? `0 0 0 3px ${C.redFaint},0 2px 8px rgba(139,0,0,0.08)` : "0 1px 3px rgba(0,0,0,0.06)",
+        cursor: canClick ? "pointer" : "default",
+        position: "relative"
+      }}
+    >
+      {canClick && (
+        <span style={{
+          position: "absolute",
+          top: 6,
+          right: 10,
+          fontSize: 9,
+          color: C.faint,
+          fontWeight: 600,
+          letterSpacing: 0.5,
+          background: C.surface,
+          padding: "1px 8px",
+          borderRadius: 99
+        }}>tap to score</span>
+      )}
+      
+      <div style={{display:"flex",gap:6,alignItems:"center",marginBottom:6,flexWrap:"wrap"}}>
         <Pill status={m.status}/>
         <SportBadge sport={m.sport}/>
-        {m.round&&<span style={{fontSize:11,color:C.muted,background:C.surface,border:`1px solid ${C.border}`,borderRadius:99,padding:"2px 8px"}}>{m.round}</span>}
+        {tournamentBadge}
+        {m.round && <span style={{fontSize:11,color:C.muted,background:C.surface,border:`1px solid ${C.border}`,borderRadius:99,padding:"1px 8px"}}>{m.round}</span>}
         <span style={{fontSize:11,color:C.muted,marginLeft:"auto"}}>📍 {m.venue}</span>
       </div>
-      <div style={{display:"flex",alignItems:"center",gap:8}}>
-        <Name p={pA} side="A"/>
+      
+      <div style={{display:"flex",alignItems:"center",gap:6}}>
+        <NameA p={pA} side="A"/>
         <Score/>
-        <div style={{display:"flex",alignItems:"center",gap:7,flex:1,minWidth:0,justifyContent:"flex-end"}}>
-          {res==="B"&&<span style={{fontSize:14,flexShrink:0}}>🏆</span>}
-          {pB && !pB.isTbd ? <>
-            <div style={{minWidth:0,textAlign:"right"}}>
-              <div style={{fontWeight:res==="B"?900:700,fontSize:14,color:res==="B"?C.ink:C.body,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{pB.name}</div>
-              {pB.club&&<div style={{fontSize:10,color:C.muted}}>{pB.club}</div>}
-            </div>
-            {pB.flag&&<FlagBadge flag={pB.flag} size={16}/>}
-          </> : <span style={{color:C.faint}}>TBD</span>}
-        </div>
+        <NameB p={pB} side="B"/>
+      </div>
+      
+      <div style={{fontSize:11,color:C.muted,marginTop:4,display:"flex",gap:8}}>
+        <span>📅 {m.date ? fmtDate(m.date) : '—'}</span>
+        <span>🕐 {m.time ? fmtTime(m.time) : '—'}</span>
+        <span>📍 {m.venue || '—'}</span>
       </div>
     </div>
   );
@@ -840,6 +1085,7 @@ export default function App() {
   const [badmintonMatches, setBadmintonMatches] = useState([]);
   const [chessMatches, setChessMatches] = useState([]);
   const [dominoMatches, setDominoMatches] = useState([]);
+  const [scoreModal, setScoreModal] = useState(null);
 
   useEffect(() => {
     try { localStorage.setItem("hutribjp_program", JSON.stringify(programEvents)); } catch {}
@@ -989,6 +1235,25 @@ export default function App() {
     return result;
   };
 
+  // ─── Score modal handlers ────────────────────────────────────────────────
+  const handleScoreSave = async (updatedMatch) => {
+    if (updatedMatch.sport === 'Chess') {
+      await saveSportMatch(CHESS_TABLE, updatedMatch);
+      await loadChess();
+    } else if (updatedMatch.sport === 'Domino') {
+      await saveSportMatch(DOMINO_TABLE, updatedMatch);
+      await loadDomino();
+    }
+    setScoreModal(null);
+    showToast(`${updatedMatch.sport} score saved!`);
+  };
+
+  const handleMatchClick = (match) => {
+    if ((match.sport === "Chess" || match.sport === "Domino") && match.status !== "finished") {
+      setScoreModal(match);
+    }
+  };
+
   // ── style atoms ───────────────────────────────────────────────────────────
   const inp={background:C.surface,border:`1.5px solid ${C.border}`,borderRadius:8,color:C.ink,padding:"9px 12px",fontSize:13,width:"100%",boxSizing:"border-box"};
   const lbl={fontSize:10,color:C.muted,fontWeight:700,display:"block",marginBottom:4,letterSpacing:1};
@@ -1008,21 +1273,21 @@ export default function App() {
       </div>
     );
     return dates.map(date=>(
-      <div key={date} style={{marginBottom:28}}>
-        <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:12}}>
-          <div style={{fontWeight:800,fontSize:13,color:C.red}}>{fmtDate(date)}</div>
+      <div key={date} style={{marginBottom:24}}>
+        <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:10}}>
+          <div style={{fontWeight:800,fontSize:14,color:C.red}}>{fmtDate(date)}</div>
           <div style={{flex:1,height:1,background:C.border}}/>
-          <div style={{fontSize:11,color:C.muted,background:C.surface,border:`1px solid ${C.border}`,borderRadius:99,padding:"2px 8px"}}>{grouped[date].length} event{grouped[date].length!==1?"s":""}</div>
+          <div style={{fontSize:11,color:C.muted,background:C.surface,border:`1px solid ${C.border}`,borderRadius:99,padding:"2px 10px"}}>{grouped[date].length} event{grouped[date].length!==1?"s":""}</div>
         </div>
-        <div style={{display:"flex",flexDirection:"column",gap:10}}>
+        <div style={{display:"flex",flexDirection:"column",gap:8}}>
           {grouped[date].map((item,idx)=>(
             <div key={idx} style={{display:"flex"}}>
-              <div style={{width:52,paddingTop:16,paddingRight:12,textAlign:"right",flexShrink:0}}>
+              <div style={{width:48,paddingTop:16,paddingRight:10,textAlign:"right",flexShrink:0}}>
                 <span style={{fontSize:12,fontWeight:700,color:C.muted}}>{item._time ? fmtTime(item._time) : "—"}</span>
               </div>
               <div style={{flex:1}}>
                 {item.kind==="match"
-                  ? <MatchCard m={item} lookupParticipant={lookupParticipant}/>
+                  ? <MatchCard m={item} lookupParticipant={lookupParticipant} onClick={() => handleMatchClick(item)}/>
                   : <ProgramCard e={item}/>
                 }
               </div>
@@ -1053,8 +1318,8 @@ export default function App() {
 
       <div style={{background:C.white,borderBottom:`1.5px solid ${C.border}`,boxShadow:"0 1px 8px rgba(139,0,0,0.06)"}}>
         <div style={{maxWidth:1040,margin:"0 auto",padding:"0 16px"}}>
-          <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"18px 0 14px",flexWrap:"wrap",gap:12}}>
-            <div style={{display:"flex",alignItems:"center",gap:12}}>
+          <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"16px 0 12px",flexWrap:"wrap",gap:10}}>
+            <div style={{display:"flex",alignItems:"center",gap:10}}>
               <img src={LOGO_DATA_URI} alt="Logo"
                 onClick={()=>{
                   logoClickCount.current+=1;
@@ -1062,49 +1327,55 @@ export default function App() {
                   logoClickTimer.current=setTimeout(()=>{logoClickCount.current=0;},600);
                   if(logoClickCount.current>=3){logoClickCount.current=0;if(!official)setShowLogin(true);}
                 }}
-                style={{width:48,height:48,borderRadius:12,boxShadow:`0 4px 16px ${C.redGlow}`,objectFit:"cover",cursor:"default",userSelect:"none"}}/>
+                style={{width:44,height:44,borderRadius:12,boxShadow:`0 4px 16px ${C.redGlow}`,objectFit:"cover",cursor:"default",userSelect:"none"}}/>
               <div>
-                <div style={{fontSize:20,fontWeight:900,color:C.ink,letterSpacing:"-0.5px",lineHeight:1}}>HUT RI <span style={{color:C.red}}>BJP</span> <span style={{fontSize:16,fontWeight:700,color:C.muted}}>2026</span></div>
-                <div style={{fontSize:10,color:C.muted,letterSpacing:2,textTransform:"uppercase",marginTop:3}}>Indonesia Berdaulat Adil dan Makmur</div>
+                <div style={{fontSize:18,fontWeight:900,color:C.ink,letterSpacing:"-0.5px",lineHeight:1}}>HUT RI <span style={{color:C.red}}>BJP</span> <span style={{fontSize:14,fontWeight:700,color:C.muted}}>2026</span></div>
+                <div style={{fontSize:9,color:C.muted,letterSpacing:2,textTransform:"uppercase",marginTop:2}}>Indonesia Berdaulat Adil dan Makmur</div>
               </div>
             </div>
             {official&&(
-              <div style={{display:"flex",alignItems:"center",gap:10}}>
+              <div style={{display:"flex",alignItems:"center",gap:8}}>
                 <div style={{textAlign:"right"}}><div style={{fontSize:12,fontWeight:700,color:C.ink}}>{official.badge} {official.role}</div><div style={{fontSize:11,color:C.muted}}>{official.username}</div></div>
-                <button onClick={()=>{setOfficial(null);setView("schedule");showToast("Logged out");}} style={{...ghostBtn(false),padding:"7px 14px"}}>Sign out</button>
+                <button onClick={()=>{setOfficial(null);setView("schedule");showToast("Logged out");}} style={{...ghostBtn(false),padding:"6px 14px",fontSize:12}}>Logout</button>
               </div>
             )}
           </div>
           <nav style={{display:"flex",gap:2,overflowX:"auto",marginBottom:"-1.5px"}}>
-            {[["schedule","📅 Schedule"],["results","✅ Results"],
+            {[
+              ["schedule","📅 Jadwal"],
+              ["results","✅ Hasil Pertandingan"],
               ...(official?[["official","⚙️ Officials"]]:[])
             ].map(([v,l])=><button key={v} style={navBtn(view===v)} onClick={()=>setView(v)}>{l}</button>)}
           </nav>
         </div>
       </div>
 
-      <div style={{maxWidth:1040,margin:"0 auto",padding:"28px 16px"}}>
+      <div style={{maxWidth:1040,margin:"0 auto",padding:"16px 16px 40px"}}>
 
         {/* ── SCHEDULE ── */}
         {view==="schedule"&&<>
-          <div style={{display:"flex",alignItems:"baseline",justifyContent:"space-between",marginBottom:20,flexWrap:"wrap",gap:8}}>
-            <h1 style={{fontSize:22,fontWeight:900,color:C.ink,margin:0}}>Schedule</h1>
+          <div style={{display:"flex",alignItems:"baseline",justifyContent:"space-between",marginBottom:16,flexWrap:"wrap",gap:8}}>
+            <h1 style={{fontSize:20,fontWeight:900,color:C.ink,margin:0}}>Jadwal</h1>
             <span style={{fontSize:12,color:C.muted}}>{allScheduleItems.length} events</span>
           </div>
-          <div style={{background:C.white,border:`1.5px solid ${C.border}`,borderRadius:12,padding:"12px 16px",marginBottom:24}}>
-            <div style={{display:"flex",gap:6,flexWrap:"wrap",alignItems:"center"}}>
-              <span style={{fontSize:11,color:C.muted,fontWeight:700,letterSpacing:1}}>VIEW</span>
-              {[["All","All"],["match","Matches"],["program","Program"]].map(([v,l])=>(
+          <div style={{background:C.white,border:`1.5px solid ${C.border}`,borderRadius:10,padding:"10px 14px",marginBottom:20}}>
+            <div style={{display:"flex",gap:4,flexWrap:"wrap",alignItems:"center"}}>
+              <span style={{fontSize:10,color:C.muted,fontWeight:700,letterSpacing:1}}>VIEW</span>
+              {[
+                ["All","Semua"],
+                ["match","Matches"],
+                ["program","Program"]
+              ].map(([v,l])=>(
                 <button key={v} style={ghostBtn(filterKind===v)} onClick={()=>setFilterKind(v)}>{l}</button>
               ))}
               {filterKind!=="program"&&<>
-                <div style={{width:1,height:20,background:C.border}}/>
-                <span style={{fontSize:11,color:C.muted,fontWeight:700,letterSpacing:1}}>SPORT</span>
-                {SPORTS.map(s=><button key={s} style={ghostBtn(filterSport===s)} onClick={()=>setFilterSport(s)}>{SPORT_META[s].emoji} {s}</button>)}
-                <button style={ghostBtn(filterSport==="All")} onClick={()=>setFilterSport("All")}>All</button>
-                <div style={{width:1,height:20,background:C.border}}/>
-                <select style={{...inp,width:"auto",padding:"5px 10px",fontSize:12}} value={filterStatus} onChange={e=>setFilterStatus(e.target.value)}>
-                  {["All","scheduled","live","finished"].map(v=><option key={v} value={v}>{v.charAt(0).toUpperCase()+v.slice(1)}</option>)}
+                <div style={{width:1,height:18,background:C.border}}/>
+                <span style={{fontSize:10,color:C.muted,fontWeight:700,letterSpacing:1}}>SPORT</span>
+                {SPORTS.map(s=><button key={s} style={ghostBtn(filterSport===s)} onClick={()=>setFilterSport(s)}>{SPORT_META[s].emoji} {SPORT_DISPLAY[s]}</button>)}
+                <button style={ghostBtn(filterSport==="All")} onClick={()=>setFilterSport("All")}>Semua</button>
+                <div style={{width:1,height:18,background:C.border}}/>
+                <select style={{...inp,width:"auto",padding:"4px 10px",fontSize:12}} value={filterStatus} onChange={e=>setFilterStatus(e.target.value)}>
+                  {["All","scheduled","live","finished"].map(v=><option key={v} value={v}>{v==="All"?"All":v.charAt(0).toUpperCase()+v.slice(1)}</option>)}
                 </select>
               </>}
             </div>
@@ -1114,19 +1385,19 @@ export default function App() {
 
         {/* ── RESULTS ── */}
         {view==="results"&&<>
-          <h1 style={{fontSize:22,fontWeight:900,color:C.ink,marginBottom:20}}>Results</h1>
-          <div style={{display:"flex",gap:6,flexWrap:"wrap",marginBottom:20}}>
+          <h1 style={{fontSize:20,fontWeight:900,color:C.ink,marginBottom:16}}>Hasil Pertandingan</h1>
+          <div style={{display:"flex",gap:4,flexWrap:"wrap",marginBottom:16}}>
             {["All",...SPORTS].map(s=>(
               <button key={s} style={ghostBtn(filterSport===s)} onClick={()=>setFilterSport(s)}>
-                {s!=="All"&&(SPORT_META[s]?.emoji+" ")}{s}
+                {s!=="All" ? SPORT_META[s]?.emoji+" " : ""}{s==="All" ? "Semua" : SPORT_DISPLAY[s] || s}
               </button>
             ))}
           </div>
           {resultMatches.filter(m=>filterSport==="All"||m.sport===filterSport)
             .sort((a,b)=>b.date?.localeCompare(a.date??"")||b.time?.localeCompare(a.time??""))
             .map((m,i)=>(
-              <div key={i} style={{display:"flex",marginBottom:10}}>
-                <div style={{width:52,paddingTop:16,paddingRight:12,textAlign:"right",flexShrink:0}}>
+              <div key={i} style={{display:"flex",marginBottom:8}}>
+                <div style={{width:48,paddingTop:16,paddingRight:10,textAlign:"right",flexShrink:0}}>
                   <span style={{fontSize:12,fontWeight:700,color:C.muted}}>{m.time ? fmtTime(m.time) : "—"}</span>
                 </div>
                 <div style={{flex:1}}><MatchCard m={m} lookupParticipant={lookupParticipant}/></div>
@@ -1134,8 +1405,8 @@ export default function App() {
             ))
           }
           {resultMatches.length===0&&(
-            <div style={{textAlign:"center",color:C.faint,padding:64,fontSize:14}}>
-              <div style={{fontSize:40,marginBottom:12}}>🏆</div>
+            <div style={{textAlign:"center",color:C.faint,padding:48,fontSize:14}}>
+              <div style={{fontSize:36,marginBottom:12}}>🏆</div>
               <div style={{fontWeight:700,color:C.muted,marginBottom:6}}>No results yet</div>
               <div style={{fontSize:12}}>Results appear here once you mark a match as finished.</div>
             </div>
@@ -1144,74 +1415,65 @@ export default function App() {
 
         {/* ── OFFICIALS ── */}
         {view==="official"&&official&&<>
-          <div style={{marginBottom:20}}>
-            <h1 style={{fontSize:22,fontWeight:900,color:C.ink,margin:0}}>Officials Panel</h1>
-            <div style={{fontSize:12,color:C.muted,marginTop:4}}>{official.badge} {official.role} · {official.username}</div>
+          <div style={{marginBottom:16}}>
+            <h1 style={{fontSize:20,fontWeight:900,color:C.ink,margin:0}}>Officials Panel</h1>
+            <div style={{fontSize:12,color:C.muted,marginTop:2}}>{official.badge} {official.role} · {official.username}</div>
           </div>
-          <div style={{display:"flex",gap:8,flexWrap:"wrap",marginBottom:24}}>
-  {/* Super Admin sees everything */}
-  {official?.role === "admin" && (
-    <>
-      <button onClick={()=>setOfficialTab("program")} style={tabBtn(officialTab==="program")}>📌 Program</button>
-      <button onClick={()=>setOfficialTab("chess")} style={tabBtn(officialTab==="chess")}>♟️ Chess</button>
-      <button onClick={()=>setOfficialTab("domino")} style={tabBtn(officialTab==="domino")}>🀱 Domino</button>
-    </>
-  )}
-  
-  {/* Chess Admin sees only Chess */}
-  {official?.role === "chess_admin" && (
-    <>
-      <button onClick={()=>setOfficialTab("chess")} style={tabBtn(officialTab==="chess")}>♟️ Chess</button>
-    </>
-  )}
-  
-  {/* Domino Admin sees only Domino */}
-  {official?.role === "domino_admin" && (
-    <>
-      <button onClick={()=>setOfficialTab("domino")} style={tabBtn(officialTab==="domino")}>🀱 Domino</button>
-    </>
-  )}
-  
-  {/* Event Admin sees only Program */}
-  {official?.role === "event_admin" && (
-    <>
-      <button onClick={()=>setOfficialTab("program")} style={tabBtn(officialTab==="program")}>📌 Program</button>
-    </>
-  )}
-</div>
-          {/* Program events */}
+          <div style={{display:"flex",gap:6,flexWrap:"wrap",marginBottom:20}}>
+            {official?.role === "admin" && (
+              <>
+                <button onClick={()=>setOfficialTab("program")} style={tabBtn(officialTab==="program")}>📌 Program</button>
+                <button onClick={()=>setOfficialTab("chess")} style={tabBtn(officialTab==="chess")}>♟️ Chess</button>
+                <button onClick={()=>setOfficialTab("domino")} style={tabBtn(officialTab==="domino")}>🀱 Domino</button>
+              </>
+            )}
+            {official?.role === "chess_admin" && (
+              <button onClick={()=>setOfficialTab("chess")} style={tabBtn(officialTab==="chess")}>♟️ Chess</button>
+            )}
+            {official?.role === "domino_admin" && (
+              <button onClick={()=>setOfficialTab("domino")} style={tabBtn(officialTab==="domino")}>🀱 Domino</button>
+            )}
+            {official?.role === "event_admin" && (
+              <button onClick={()=>setOfficialTab("program")} style={tabBtn(officialTab==="program")}>📌 Program</button>
+            )}
+          </div>
+
           {officialTab==="program"&&(
-            <div style={{background:C.white,border:`1.5px solid ${C.border}`,borderRadius:12,padding:22,boxShadow:"0 1px 4px rgba(0,0,0,0.04)"}}>
-              <div style={{fontWeight:800,color:C.ink,marginBottom:10,fontSize:15}}>Program Events</div>
-              <div style={{fontSize:12,color:C.muted,marginBottom:18}}>Non-match events (ceremonies, meetings, press conferences, etc.) that appear in the public schedule.</div>
+            <div style={{background:C.white,border:`1.5px solid ${C.border}`,borderRadius:12,padding:16,boxShadow:"0 1px 4px rgba(0,0,0,0.04)"}}>
+              <div style={{fontWeight:800,color:C.ink,marginBottom:8,fontSize:15}}>Program Events</div>
+              <div style={{fontSize:12,color:C.muted,marginBottom:16}}>Non-match events (ceremonies, meetings, press conferences, etc.) that appear in the public schedule.</div>
 
               {programEvents.sort((a,b)=>a.date.localeCompare(b.date)||a.time.localeCompare(b.time)).map(e=>(
                 <div key={e.id} style={{background:C.surface,border:`1.5px solid ${C.border}`,borderRadius:10,padding:"10px 14px",marginBottom:8,display:"flex",alignItems:"center",gap:10,flexWrap:"wrap"}}>
-                  <div style={{flex:1,minWidth:200}}>
+                  <div style={{flex:1,minWidth:160}}>
                     <div style={{fontSize:11,color:C.muted,marginBottom:2}}>{fmtDate(e.date)} {e.time ? fmtTime(e.time) : ''} · {e.venue||"TBA"}</div>
-                    <div style={{fontWeight:700,fontSize:13,color:C.ink}}>{e.title}</div>
-                    {e.description&&<div style={{fontSize:11,color:C.muted,marginTop:2}}>{e.description}</div>}
+                    <div style={{fontWeight:700,fontSize:14,color:C.ink,wordBreak:"break-word"}}>{e.title}</div>
+                    {e.description&&<div style={{fontSize:12,color:C.muted,marginTop:2,wordBreak:"break-word"}}>{e.description}</div>}
                   </div>
-                  <button onClick={()=>setEditProgItem(e)} style={{padding:"5px 12px",borderRadius:7,cursor:"pointer",fontSize:12,fontWeight:700,border:`1.5px solid ${C.border}`,background:C.white,color:C.body}}>✏️ Edit</button>
-                  <button onClick={()=>setProgramEvents(p=>p.filter(x=>x.id!==e.id))} style={{padding:"5px 10px",borderRadius:7,cursor:"pointer",fontSize:12,fontWeight:700,border:"1.5px solid #FECACA",background:C.redFaint,color:C.red}}>🗑</button>
+                  <button onClick={()=>setEditProgItem(e)} style={{padding:"4px 10px",borderRadius:6,cursor:"pointer",fontSize:12,fontWeight:600,border:`1.5px solid ${C.border}`,background:C.white,color:C.body,minHeight:36}}>✏️</button>
+                  <button onClick={()=>setProgramEvents(p=>p.filter(x=>x.id!==e.id))} style={{padding:"4px 10px",borderRadius:6,cursor:"pointer",fontSize:12,fontWeight:600,border:"1.5px solid #FECACA",background:C.redFaint,color:C.red,minHeight:36}}>🗑</button>
                 </div>
               ))}
 
               {divider("ADD NEW EVENT")}
-              <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12,marginBottom:12}}>
+              <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginBottom:12}}>
                 <div style={{gridColumn:"1/-1"}}><label style={lbl}>TITLE</label><input style={inp} value={npForm.title} onChange={e=>setNpForm(f=>({...f,title:e.target.value}))} placeholder="Opening Ceremony, Technical Meeting…"/></div>
                 <div><label style={lbl}>AUDIENCE</label><input style={inp} value={npForm.audience} onChange={e=>setNpForm(f=>({...f,audience:e.target.value}))} placeholder="All / Media / Athletes…"/></div>
                 <div><label style={lbl}>DATE</label><input style={inp} type="date" value={npForm.date} onChange={e=>setNpForm(f=>({...f,date:e.target.value}))}/></div>
                 <div><label style={lbl}>TIME</label><input style={inp} type="time" value={npForm.time} onChange={e=>setNpForm(f=>({...f,time:e.target.value}))}/></div>
-                <div style={{gridColumn:"1/-1"}}><label style={lbl}>VENUE</label><input style={inp} value={npForm.venue} onChange={e=>setNpForm(f=>({...f,venue:e.target.value}))} placeholder="Main Hall…"/></div>
+                <div style={{gridColumn:"1/-1"}}><label style={lbl}>VENUE</label>
+                  <select style={inp} value={npForm.venue} onChange={e=>setNpForm(f=>({...f,venue:e.target.value}))}>
+                    <option value="">Select Venue</option>
+                    {PROGRAM_VENUES.map(v => <option key={v} value={v}>{v}</option>)}
+                  </select>
+                </div>
                 <div style={{gridColumn:"1/-1"}}><label style={lbl}>DESCRIPTION (optional)</label><input style={inp} value={npForm.description} onChange={e=>setNpForm(f=>({...f,description:e.target.value}))} placeholder="Brief description…"/></div>
               </div>
-              {npForm.title&&npForm.date&&<div style={{marginBottom:14}}><div style={{fontSize:10,color:C.muted,fontWeight:700,letterSpacing:1,marginBottom:8}}>PREVIEW</div><ProgramCard e={npForm}/></div>}
+              {npForm.title&&npForm.date&&<div style={{marginBottom:12}}><div style={{fontSize:10,color:C.muted,fontWeight:700,letterSpacing:1,marginBottom:6}}>PREVIEW</div><ProgramCard e={npForm}/></div>}
               <button style={primaryBtn} onClick={handleAddProgram}>📌 Add to Schedule</button>
             </div>
           )}
 
-          {/* Chess Management */}
           {officialTab==="chess"&&(
             <SportManagement
               sport="Chess"
@@ -1224,7 +1486,6 @@ export default function App() {
             />
           )}
 
-          {/* Domino Management */}
           {officialTab==="domino"&&(
             <SportManagement
               sport="Domino"
@@ -1239,17 +1500,25 @@ export default function App() {
         </>}
 
         {view==="official"&&!official&&(
-          <div style={{textAlign:"center",padding:80}}>
-            <div style={{width:80,height:80,borderRadius:99,background:C.redFaint,border:"1.5px solid #FECACA",display:"flex",alignItems:"center",justifyContent:"center",fontSize:36,margin:"0 auto 20px"}}>🔒</div>
-            <div style={{fontSize:20,fontWeight:800,color:C.ink,marginBottom:8}}>Officials Only</div>
-            <div style={{fontSize:14,color:C.muted,marginBottom:28}}>Sign in to access the Officials Panel.</div>
+          <div style={{textAlign:"center",padding:60}}>
+            <div style={{width:72,height:72,borderRadius:99,background:C.redFaint,border:"1.5px solid #FECACA",display:"flex",alignItems:"center",justifyContent:"center",fontSize:32,margin:"0 auto 16px"}}>🔒</div>
+            <div style={{fontSize:18,fontWeight:800,color:C.ink,marginBottom:6}}>Officials Only</div>
+            <div style={{fontSize:13,color:C.muted,marginBottom:24}}>Sign in to access the Officials Panel.</div>
             <button style={primaryBtn} onClick={()=>setShowLogin(true)}>Sign In</button>
           </div>
         )}
       </div>
 
+      {scoreModal && (
+        <ScoreModal
+          match={scoreModal}
+          onSave={handleScoreSave}
+          onClose={() => setScoreModal(null)}
+        />
+      )}
+
       {toast&&(
-        <div style={{position:"fixed",bottom:24,right:24,zIndex:999,padding:"13px 22px",borderRadius:10,fontWeight:700,fontSize:14,color:C.white,background:toast.type==="error"?C.redDeep:"#166534",border:`1px solid ${toast.type==="error"?C.red:C.greenBorder}`,boxShadow:"0 6px 30px rgba(0,0,0,0.15)"}}>
+        <div style={{position:"fixed",bottom:20,left:"50%",transform:"translateX(-50%)",zIndex:999,padding:"12px 20px",borderRadius:10,fontWeight:700,fontSize:14,color:C.white,background:toast.type==="error"?C.redDeep:"#166534",border:`1px solid ${toast.type==="error"?C.red:C.greenBorder}`,boxShadow:"0 6px 30px rgba(0,0,0,0.15)",maxWidth:"90%",textAlign:"center"}}>
           {toast.msg}
         </div>
       )}
