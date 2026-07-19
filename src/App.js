@@ -16,6 +16,10 @@ const sportsSupabase = createClient(SPORTS_URL, SPORTS_KEY);
 const CHESS_TABLE = "hut_ri_bjp_2026_chess";
 const DOMINO_TABLE = "hut_ri_bjp_2026_domino";
 
+// ─── TABLE TENNIS TABLES ──────────────────────────────────────────────────
+const TT_SINGLES_TABLE = "tt_singles_matches";
+const TT_DOUBLES_TABLE = "tt_doubles_matches";
+
 // ─── VENUE CONFIG ──────────────────────────────────────────────────────────
 const VENUES = {
   "Badminton": "GOR RW 011 BJP",
@@ -215,6 +219,126 @@ async function fetchBadmintonMatches() {
     });
   } catch (err) {
     console.error('Error fetching Badminton:', err);
+    return [];
+  }
+}
+
+// ─── FETCH TABLE TENNIS MATCHES ──────────────────────────────────────────
+async function fetchTableTennisMatches() {
+  try {
+    // Fetch Singles
+    const { data: singlesData, error: singlesError } = await sportsSupabase
+      .from(TT_SINGLES_TABLE)
+      .select('*')
+      .order('scheduled_date', { ascending: true })
+      .order('scheduled_time', { ascending: true });
+
+    if (singlesError) {
+      console.error('TT Singles fetch error:', singlesError);
+    }
+
+    // Fetch Doubles
+    const { data: doublesData, error: doublesError } = await sportsSupabase
+      .from(TT_DOUBLES_TABLE)
+      .select('*')
+      .order('scheduled_date', { ascending: true })
+      .order('scheduled_time', { ascending: true });
+
+    if (doublesError) {
+      console.error('TT Doubles fetch error:', doublesError);
+    }
+
+    // Combine both
+    const allData = [...(singlesData || []), ...(doublesData || [])];
+
+    if (!allData || allData.length === 0) {
+      return [];
+    }
+
+    return allData.map(match => {
+      // Determine if singles or doubles
+      const isSingles = match.player1 !== undefined && match.player2 !== undefined;
+      
+      // Build player names
+      let pA, pB;
+      if (isSingles) {
+        pA = match.player1 || 'TBD';
+        pB = match.player2 || 'TBD';
+      } else {
+        // Doubles: team1_p1 / team1_p2
+        const team1 = [match.team1_p1, match.team1_p2].filter(Boolean).join(' / ');
+        const team2 = [match.team2_p1, match.team2_p2].filter(Boolean).join(' / ');
+        pA = team1 || 'TBD';
+        pB = team2 || 'TBD';
+      }
+
+      // Extract scores from sets JSONB
+      let scoreA = null;
+      let scoreB = null;
+      let result = null;
+      let sets = [];
+
+      if (match.sets && Array.isArray(match.sets) && match.sets.length > 0) {
+        sets = match.sets.map(s => ({
+          sA: s.p1 || 0,
+          sB: s.p2 || 0
+        }));
+        // Calculate total scores
+        scoreA = sets.reduce((sum, s) => sum + s.sA, 0);
+        scoreB = sets.reduce((sum, s) => sum + s.sB, 0);
+      }
+
+      // Determine status from winner column
+      let status = 'scheduled';
+      if (match.winner !== null && match.winner !== undefined && match.winner !== '') {
+        status = 'finished';
+        result = match.winner === 'p1' ? 'A' : match.winner === 'p2' ? 'B' : 'draw';
+      }
+
+      // Determine round label from stage and group
+      let roundLabel = '';
+      const stage = match.stage || '';
+      const group = match.group_id || '';
+
+      if (stage === 'group') {
+        roundLabel = `Group ${group}`;
+      } else if (stage === 'next') {
+        roundLabel = `Next Stage ${group}`;
+      } else if (stage === 'championship') {
+        roundLabel = 'Championship';
+      } else if (stage === 'semifinal') {
+        roundLabel = 'Semifinals';
+      } else if (stage === 'final') {
+        roundLabel = 'Final';
+      } else if (stage === 'complete') {
+        roundLabel = 'Complete';
+      } else {
+        roundLabel = stage || '';
+      }
+
+      const venue = match.table_number ? `Table ${match.table_number}` : '';
+
+      return {
+        id: match.id,
+        sport: 'Table Tennis',
+        tournamentName: 'Turnamen Tenis Meja - HUT RI 2026 Bintara Jaya Permai',
+        round: roundLabel,
+        pA: pA,
+        pB: pB,
+        date: match.scheduled_date || '',
+        time: match.scheduled_time || '',
+        venue: venue,
+        scoreA: scoreA,
+        scoreB: scoreB,
+        result: result,
+        sets: sets,
+        status: status,
+        kind: 'match',
+        _raw: match
+      };
+    });
+  } catch (err) {
+    console.error('Error fetching Table Tennis:', err);
     return [];
   }
 }
@@ -862,10 +986,11 @@ function MatchCard({ m, lookupParticipant, onClick, official }) {
   const meta = SPORT_META[m.sport] ?? { emoji: "🏅", scoringType: "points" };
 
   let pA, pB;
-  if (m.sport === 'Badminton') {
-    pA = m.pA || { name: 'TBD', isTbd: true };
-    pB = m.pB || { name: 'TBD', isTbd: true };
-  } else {
+  if (m.sport === 'Badminton' || m.sport === 'Table Tennis') {
+  pA = typeof m.pA === 'object' ? m.pA : { name: m.pA || 'TBD', isTbd: true };
+  pB = typeof m.pB === 'object' ? m.pB : { name: m.pB || 'TBD', isTbd: true };
+  }
+  else {
     pA = lookupParticipant(m.sport, m.pA);
     pB = lookupParticipant(m.sport, m.pB);
   }
@@ -939,7 +1064,7 @@ function MatchCard({ m, lookupParticipant, onClick, official }) {
       );
     }
 
-    if (m.sport === 'Badminton') {
+    if (m.sport === 'Badminton' || m.sport === 'Table Tennis') {
       if (m.scoreA === null || m.scoreB === null) {
         return <div style={{ color: C.faint, fontWeight: 600, fontSize: 13, minWidth: 44, textAlign: "center" }}>vs</div>;
       }
@@ -1086,6 +1211,7 @@ export default function App() {
     } catch { return seedProgram(); }
   });
   const [badmintonMatches, setBadmintonMatches] = useState([]);
+  const [ttMatches, setTtMatches] = useState([]);
   const [chessMatches, setChessMatches] = useState([]);
   const [dominoMatches, setDominoMatches] = useState([]);
   const [scoreModal, setScoreModal] = useState(null);
@@ -1118,7 +1244,17 @@ export default function App() {
     }
     loadBadminton();
   }, []);
-
+ 
+  // ─── LOAD TABLE TENNIS DATA ────────────────────────────────────────────────
+useEffect(() => {
+  async function loadTableTennis() {
+    const data = await fetchTableTennisMatches();
+    setTtMatches(data);
+    console.log('Table Tennis matches loaded:', data.length);
+  }
+  loadTableTennis();
+}, []);
+  
   // ─── LOAD CHESS & DOMINO DATA ─────────────────────────────────────────────
   const loadChess = async () => {
     const data = await fetchSportMatches(CHESS_TABLE, 'Chess');
@@ -1153,6 +1289,7 @@ export default function App() {
   const allMatches = () => {
     const out = [];
     badmintonMatches.forEach(m => out.push({ ...m, kind: 'match' }));
+    ttMatches.forEach(m => out.push({ ...m, kind: 'match' }));
     chessMatches.forEach(m => out.push({ ...m, kind: 'match' }));
     dominoMatches.forEach(m => out.push({ ...m, kind: 'match' }));
     return out;
