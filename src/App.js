@@ -223,51 +223,108 @@ async function fetchBadmintonMatches() {
 async function fetchTableTennisMatches() {
   try {
     const { data: singlesData, error: singlesError } = await sportsSupabase
-      .from('tt_singles_view')
-      .select('*');
+      .from('tt_singles_matches')
+      .select('*')
+      .eq('stage', 'group')
+      .order('scheduled_date', { ascending: true })
+      .order('scheduled_time', { ascending: true });
 
     if (singlesError) {
-      console.error('TT Singles view error:', singlesError);
+      console.error('TT Singles fetch error:', singlesError);
     }
 
     const { data: doublesData, error: doublesError } = await sportsSupabase
-      .from('tt_doubles_view')
-      .select('*');
+      .from('tt_doubles_matches')
+      .select('*')
+      .eq('stage', 'group')
+      .order('scheduled_date', { ascending: true })
+      .order('scheduled_time', { ascending: true });
 
     if (doublesError) {
-      console.error('TT Doubles view error:', doublesError);
+      console.error('TT Doubles fetch error:', doublesError);
     }
 
-    const singles = (singlesData || []).map(m => ({ ...m, category: 'Singles' }));
-    const doubles = (doublesData || []).map(m => ({ ...m, category: 'Doubles' }));
+    const singles = (singlesData || []).map(m => ({ ...m, _category: 'Singles' }));
+    const doubles = (doublesData || []).map(m => ({ ...m, _category: 'Doubles' }));
     const allData = [...singles, ...doubles];
 
     if (!allData || allData.length === 0) {
       return [];
     }
 
-    console.log('TT matches loaded:', allData.length);
+    return allData.map(match => {
+      // Build player objects (same pattern as Badminton)
+      let pA = null;
+      let pB = null;
 
-    return allData.map(match => ({
-      id: match.match_id,
-      sport: 'Table Tennis',
-      category: match.category,
-      tournamentName: 'Turnamen Tenis Meja - HUT RI 2026 Bintara Jaya Permai',
-      round: match.round || '',
-      pA: match.player_a || 'TBD',
-      pB: match.player_b || 'TBD',
-      date: match.scheduled_date || '',
-      time: match.scheduled_time || '',
-      venue: match.venue || VENUES["Table Tennis"],
-      scoreA: match.score_a || 0,
-      scoreB: match.score_b || 0,
-      result: match.winner ? 'A' : null,
-      winnerName: match.winner || null,
-      sets: match.sets || [],
-      status: match.status || 'scheduled',
-      kind: 'match',
-      _raw: match
-    }));
+      if (match._category === 'Singles') {
+        if (match.player1) pA = { name: match.player1, flag: null, club: null };
+        if (match.player2) pB = { name: match.player2, flag: null, club: null };
+      } else {
+        const team1 = [match.team1_p1, match.team1_p2].filter(Boolean);
+        const team2 = [match.team2_p1, match.team2_p2].filter(Boolean);
+        if (team1.length > 0) pA = { name: team1.join(' / '), flag: null, club: null };
+        if (team2.length > 0) pB = { name: team2.join(' / '), flag: null, club: null };
+      }
+
+      let status = 'scheduled';
+      if (match.winner !== null && match.winner !== undefined && match.winner !== '') {
+        status = 'finished';
+      }
+
+      // Derive result and sets (same pattern as Badminton)
+      let sets = [];
+      let scoreA = 0;
+      let scoreB = 0;
+      let result = null;
+
+      if (match.sets && Array.isArray(match.sets) && match.sets.length > 0) {
+        sets = match.sets
+          .filter(s => s && (s.p1 !== undefined || s.p2 !== undefined))
+          .map(s => ({
+            sA: parseInt(s.p1) || 0,
+            sB: parseInt(s.p2) || 0
+          }));
+        sets.forEach(s => {
+          if (s.sA > s.sB) scoreA++;
+          else if (s.sB > s.sA) scoreB++;
+        });
+      }
+
+      if (status === 'finished' && (scoreA > 0 || scoreB > 0)) {
+        result = scoreA > scoreB ? 'A' : scoreB > scoreA ? 'B' : 'draw';
+      }
+
+      let roundLabel = '';
+      const stage = match.stage || '';
+      const group = match.group_id || '';
+      if (stage === 'group') {
+        roundLabel = `Group ${group}`;
+      } else {
+        roundLabel = stage || '';
+      }
+
+      return {
+        id: match.id,
+        sport: 'Table Tennis',
+        category: match._category,
+        tournamentName: 'Turnamen Tenis Meja - HUT RI 2026 Bintara Jaya Permai',
+        round: roundLabel,
+        pA: pA ?? { name: 'TBD', flag: null, club: null, isTbd: true },
+        pB: pB ?? { name: 'TBD', flag: null, club: null, isTbd: true },
+        date: match.scheduled_date || '',
+        time: match.scheduled_time || '',
+        venue: match.table_number || VENUES["Table Tennis"],
+        scoreA: scoreA,
+        scoreB: scoreB,
+        result: result,
+        winnerName: match.winner || null,
+        sets: sets,
+        status: status,
+        kind: 'match',
+        _raw: match
+      };
+    });
   } catch (err) {
     console.error('Error fetching Table Tennis:', err);
     return [];
@@ -917,13 +974,10 @@ function MatchCard({ m, lookupParticipant, onClick, official }) {
   const meta = SPORT_META[m.sport] ?? { emoji: "🏅", scoringType: "points" };
 
   let pA, pB;
- if (m.sport === 'Badminton') {
-  pA = typeof m.pA === 'object' ? m.pA : { name: m.pA || 'TBD', isTbd: true };
-  pB = typeof m.pB === 'object' ? m.pB : { name: m.pB || 'TBD', isTbd: true };
-} else if (m.sport === 'Table Tennis') {
-  // Table Tennis: pA and pB are already strings from the view
-  pA = { name: m.pA || 'TBD', isTbd: true };
-  pB = { name: m.pB || 'TBD', isTbd: true };
+ if (m.sport === 'Badminton' || m.sport === 'Table Tennis') {
+  // Both Badminton and TT now use the same participant object pattern
+  pA = typeof m.pA === 'object' && !m.pA.isTbd ? m.pA : { name: m.pA || 'TBD', flag: null, club: null, isTbd: true };
+  pB = typeof m.pB === 'object' && !m.pB.isTbd ? m.pB : { name: m.pB || 'TBD', flag: null, club: null, isTbd: true };
 }  
   else {
     pA = lookupParticipant(m.sport, m.pA);
@@ -1012,13 +1066,15 @@ function MatchCard({ m, lookupParticipant, onClick, official }) {
   );
 }
 
-// Table Tennis - show match score (e.g., 2-1)
+// Table Tennis - show match score (sets won)
 if (m.sport === 'Table Tennis') {
-  if (m.status === 'scheduled' || m.status === 'pending') {
+  if (m.status === 'scheduled' || !m.sets || m.sets.length === 0) {
     return <div style={{ color: C.faint, fontWeight: 600, fontSize: 13, minWidth: 44, textAlign: "center" }}>vs</div>;
   }
   
-  if (m.scoreA === 0 && m.scoreB === 0) {
+  // Check if any sets have been played
+  const hasScores = m.sets.some(s => s.sA > 0 || s.sB > 0);
+  if (!hasScores) {
     return <div style={{ color: C.faint, fontWeight: 600, fontSize: 13, minWidth: 44, textAlign: "center" }}>vs</div>;
   }
   
@@ -1033,15 +1089,14 @@ if (m.sport === 'Table Tennis') {
           {m.scoreB}
         </span>
       </div>
-      {m.winnerName && (
+      {m.result && m.result !== 'draw' && (
         <div style={{ fontSize: 9, color: C.greenText, fontWeight: 600, marginTop: 2 }}>
-          🏆 {m.winnerName}
+          🏆 {m.result === 'A' ? m.pA?.name || 'Player A' : m.pB?.name || 'Player B'}
         </div>
       )}
     </div>
   );
 }
-
     if (meta.scoringType === "chess") {
       const label = res === "A" ? "1–0" : res === "B" ? "0–1" : "½–½";
       return <div style={{ fontSize: 18, fontWeight: 800, color: C.ink, minWidth: 44, textAlign: "center" }}>{label}</div>;
