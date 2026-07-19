@@ -358,8 +358,22 @@ const SportBadge = ({sport}) => {
 // ─── LOGIN MODAL ────────────────────────────────────────────────────────────
 function LoginModal({ onLogin, onCancel, accounts }) {
   const [u,setU]=useState(""), [p,setP]=useState(""), [err,setErr]=useState("");
-  const attempt=()=>{ const c=accounts.find(x=>x.username===u&&x.password===p); c?onLogin(c):setErr("Invalid credentials."); };
+  
+  // Debug logs
+  console.log('LoginModal - accounts received:', accounts);
+  console.log('LoginModal - accounts length:', accounts?.length);
+  
+  const attempt=()=>{ 
+    console.log('Login attempt - username:', u);
+    console.log('Login attempt - password:', p);
+    console.log('Login attempt - accounts array:', accounts);
+    const c=accounts.find(x=>x.username===u && x.password===p); 
+    console.log('Login attempt - found user:', c);
+    c ? onLogin(c) : setErr("Invalid credentials."); 
+  };
+  
   const inp={background:C.surface,border:`1.5px solid ${C.border}`,borderRadius:8,color:C.ink,padding:"10px 14px",fontSize:14,width:"100%",boxSizing:"border-box",outline:"none"};
+  
   return (
     <div style={{position:"fixed",inset:0,background:"rgba(26,5,5,0.55)",display:"flex",alignItems:"center",justifyContent:"center",zIndex:400,backdropFilter:"blur(6px)"}}>
       <div style={{background:C.white,border:`1px solid ${C.border}`,borderRadius:20,padding:36,width:380,boxShadow:"0 20px 60px rgba(139,0,0,0.18)"}}>
@@ -368,8 +382,14 @@ function LoginModal({ onLogin, onCancel, accounts }) {
           <div style={{fontWeight:900,fontSize:20,color:C.ink}}>Officials Login</div>
           <div style={{fontSize:11,color:C.muted,marginTop:4,letterSpacing:1.5,textTransform:"uppercase"}}>HUT RI BJP 2026</div>
         </div>
-        <div style={{marginBottom:12}}><label style={{fontSize:11,color:C.muted,fontWeight:700,display:"block",marginBottom:5,letterSpacing:1}}>USERNAME</label><input style={inp} value={u} onChange={e=>{setU(e.target.value);setErr("");}} placeholder="username"/></div>
-        <div style={{marginBottom:18}}><label style={{fontSize:11,color:C.muted,fontWeight:700,display:"block",marginBottom:5,letterSpacing:1}}>PASSWORD</label><input style={inp} type="password" value={p} onChange={e=>{setP(e.target.value);setErr("");}} placeholder="••••••••" onKeyDown={e=>e.key==="Enter"&&attempt()}/></div>
+        <div style={{marginBottom:12}}>
+          <label style={{fontSize:11,color:C.muted,fontWeight:700,display:"block",marginBottom:5,letterSpacing:1}}>USERNAME</label>
+          <input style={inp} value={u} onChange={e=>{setU(e.target.value);setErr("");}} placeholder="username"/>
+        </div>
+        <div style={{marginBottom:18}}>
+          <label style={{fontSize:11,color:C.muted,fontWeight:700,display:"block",marginBottom:5,letterSpacing:1}}>PASSWORD</label>
+          <input style={inp} type="password" value={p} onChange={e=>{setP(e.target.value);setErr("");}} placeholder="••••••••" onKeyDown={e=>e.key==="Enter"&&attempt()}/>
+        </div>
         {err&&<div style={{color:C.red,fontSize:13,marginBottom:14,textAlign:"center",background:C.redFaint,padding:"8px 12px",borderRadius:8,border:"1px solid #FECACA"}}>{err}</div>}
         <div style={{display:"flex",gap:10}}>
           <button onClick={onCancel} style={{flex:1,padding:"11px",borderRadius:9,border:`1.5px solid ${C.border}`,background:C.white,color:C.muted,cursor:"pointer",fontWeight:600,fontSize:13}}>Cancel</button>
@@ -379,7 +399,6 @@ function LoginModal({ onLogin, onCancel, accounts }) {
     </div>
   );
 }
-
 // ─── EDIT MODAL ─────────────────────────────────────────────────────────────
 function EditModal({ item, clubs, players, pairs, onSave, onClose }) {
   const [form, setForm] = useState({ ...item });
