@@ -226,120 +226,52 @@ async function fetchBadmintonMatches() {
 // ─── FETCH TABLE TENNIS MATCHES ──────────────────────────────────────────
 async function fetchTableTennisMatches() {
   try {
-    // Fetch Singles
     const { data: singlesData, error: singlesError } = await sportsSupabase
-      .from(TT_SINGLES_TABLE)
-      .select('*')
-      .order('scheduled_date', { ascending: true })
-      .order('scheduled_time', { ascending: true });
+      .from('tt_singles_view')
+      .select('*');
 
     if (singlesError) {
-      console.error('TT Singles fetch error:', singlesError);
+      console.error('TT Singles view error:', singlesError);
     }
 
-    // Fetch Doubles
     const { data: doublesData, error: doublesError } = await sportsSupabase
-      .from(TT_DOUBLES_TABLE)
-      .select('*')
-      .order('scheduled_date', { ascending: true })
-      .order('scheduled_time', { ascending: true });
+      .from('tt_doubles_view')
+      .select('*');
 
     if (doublesError) {
-      console.error('TT Doubles fetch error:', doublesError);
+      console.error('TT Doubles view error:', doublesError);
     }
 
-    // Combine both with category flag
-    const singles = (singlesData || []).map(m => ({ ...m, _category: 'Singles' }));
-    const doubles = (doublesData || []).map(m => ({ ...m, _category: 'Doubles' }));
+    const singles = (singlesData || []).map(m => ({ ...m, category: 'Singles' }));
+    const doubles = (doublesData || []).map(m => ({ ...m, category: 'Doubles' }));
     const allData = [...singles, ...doubles];
 
     if (!allData || allData.length === 0) {
       return [];
     }
 
-    console.log('Raw TT data:', allData);
+    console.log('TT matches loaded:', allData.length);
 
-    return allData.map(match => {
-      // Build player names based on category
-      let pA, pB;
-      if (match._category === 'Singles') {
-        pA = match.player1 || 'TBD';
-        pB = match.player2 || 'TBD';
-      } else {
-        // Doubles: team1_p1 / team1_p2
-        const team1 = [match.team1_p1, match.team1_p2].filter(Boolean).join(' / ');
-        const team2 = [match.team2_p1, match.team2_p2].filter(Boolean).join(' / ');
-        pA = team1 || 'TBD';
-        pB = team2 || 'TBD';
-      }
-
-      // Extract sets from sets JSONB
-      let sets = [];
-      let scoreA = null;
-      let scoreB = null;
-      let result = null;
-
-      if (match.sets && Array.isArray(match.sets) && match.sets.length > 0) {
-        sets = match.sets.map(s => ({
-          sA: s.p1 || 0,
-          sB: s.p2 || 0
-        }));
-        // Calculate total scores (for display fallback)
-        scoreA = sets.reduce((sum, s) => sum + s.sA, 0);
-        scoreB = sets.reduce((sum, s) => sum + s.sB, 0);
-      }
-
-      // Determine status from winner column
-      let status = 'scheduled';
-      if (match.winner !== null && match.winner !== undefined && match.winner !== '') {
-        status = 'finished';
-        result = match.winner === 'p1' ? 'A' : match.winner === 'p2' ? 'B' : 'draw';
-      }
-
-      // Determine round label from stage and group
-      let roundLabel = '';
-      const stage = match.stage || '';
-      const group = match.group_id || '';
-
-      if (stage === 'group') {
-        roundLabel = `Group ${group}`;
-      } else if (stage === 'next') {
-        roundLabel = `Next Stage ${group}`;
-      } else if (stage === 'championship') {
-        roundLabel = 'Championship';
-      } else if (stage === 'semifinal') {
-        roundLabel = 'Semifinals';
-      } else if (stage === 'final') {
-        roundLabel = 'Final';
-      } else if (stage === 'complete') {
-        roundLabel = 'Complete';
-      } else {
-        roundLabel = stage || '';
-      }
-
-      // Use TT venue from config
-      const venue = VENUES["Table Tennis"];
-
-      return {
-        id: match.id,
-        sport: 'Table Tennis',
-        category: match._category, // 'Singles' or 'Doubles'
-        tournamentName: 'Turnamen Tenis Meja - HUT RI 2026 Bintara Jaya Permai',
-        round: roundLabel,
-        pA: pA,
-        pB: pB,
-        date: match.scheduled_date || '',
-        time: match.scheduled_time || '',
-        venue: venue,
-        scoreA: scoreA,
-        scoreB: scoreB,
-        result: result,
-        sets: sets, // Individual sets array
-        status: status,
-        kind: 'match',
-        _raw: match
-      };
-    });
+    return allData.map(match => ({
+      id: match.match_id,
+      sport: 'Table Tennis',
+      category: match.category,
+      tournamentName: 'Turnamen Tenis Meja - HUT RI 2026 Bintara Jaya Permai',
+      round: match.round || '',
+      pA: match.player_a || 'TBD',
+      pB: match.player_b || 'TBD',
+      date: match.scheduled_date || '',
+      time: match.scheduled_time || '',
+      venue: match.venue || VENUES["Table Tennis"],
+      scoreA: match.score_a || 0,
+      scoreB: match.score_b || 0,
+      result: match.winner ? 'A' : null,
+      winnerName: match.winner || null,
+      sets: match.sets || [],
+      status: match.status || 'scheduled',
+      kind: 'match',
+      _raw: match
+    }));
   } catch (err) {
     console.error('Error fetching Table Tennis:', err);
     return [];
@@ -989,16 +921,13 @@ function MatchCard({ m, lookupParticipant, onClick, official }) {
   const meta = SPORT_META[m.sport] ?? { emoji: "🏅", scoringType: "points" };
 
   let pA, pB;
-  if (m.sport === 'Badminton' || m.sport === 'Table Tennis') {
-  // For Table Tennis, pA/pB are already strings
-  if (m.sport === 'Table Tennis') {
-    pA = { name: m.pA || 'TBD', isTbd: true };
-    pB = { name: m.pB || 'TBD', isTbd: true };
-  } else {
-    // Badminton - may be object or string
-    pA = typeof m.pA === 'object' ? m.pA : { name: m.pA || 'TBD', isTbd: true };
-    pB = typeof m.pB === 'object' ? m.pB : { name: m.pB || 'TBD', isTbd: true };
-  }
+ if (m.sport === 'Badminton') {
+  pA = typeof m.pA === 'object' ? m.pA : { name: m.pA || 'TBD', isTbd: true };
+  pB = typeof m.pB === 'object' ? m.pB : { name: m.pB || 'TBD', isTbd: true };
+} else if (m.sport === 'Table Tennis') {
+  // Table Tennis: pA and pB are already strings from the view
+  pA = { name: m.pA || 'TBD', isTbd: true };
+  pB = { name: m.pB || 'TBD', isTbd: true };
 }  
   else {
     pA = lookupParticipant(m.sport, m.pA);
@@ -1087,25 +1016,30 @@ function MatchCard({ m, lookupParticipant, onClick, official }) {
   );
 }
 
-// Table Tennis - show sets
+// Table Tennis - show match score (e.g., 2-1)
 if (m.sport === 'Table Tennis') {
-  if (!m.sets || m.sets.length === 0 || m.status === 'scheduled') {
+  if (m.status === 'scheduled' || m.status === 'pending') {
     return <div style={{ color: C.faint, fontWeight: 600, fontSize: 13, minWidth: 44, textAlign: "center" }}>vs</div>;
   }
-  // Show all sets
+  
+  if (m.scoreA === 0 && m.scoreB === 0) {
+    return <div style={{ color: C.faint, fontWeight: 600, fontSize: 13, minWidth: 44, textAlign: "center" }}>vs</div>;
+  }
+  
   return (
     <div style={{ display: "flex", flexDirection: "column", alignItems: "center", minWidth: 44 }}>
-      {m.sets.map((s, i) => (
-        <div key={i} style={{ display: "flex", alignItems: "center", gap: 2, fontSize: 11 }}>
-          <span style={{ fontWeight: 700, color: C.ink }}>{s.sA}</span>
-          <span style={{ color: C.faint }}>–</span>
-          <span style={{ fontWeight: 700, color: C.ink }}>{s.sB}</span>
-        </div>
-      ))}
-      {/* Show winner indicator */}
-      {m.result && (
+      <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
+        <span style={{ fontSize: 18, fontWeight: 900, color: m.scoreA > m.scoreB ? C.ink : C.muted }}>
+          {m.scoreA}
+        </span>
+        <span style={{ color: C.faint, fontSize: 16 }}>–</span>
+        <span style={{ fontSize: 18, fontWeight: 900, color: m.scoreB > m.scoreA ? C.ink : C.muted }}>
+          {m.scoreB}
+        </span>
+      </div>
+      {m.winnerName && (
         <div style={{ fontSize: 9, color: C.greenText, fontWeight: 600, marginTop: 2 }}>
-          {m.result === 'A' ? `${m.pA} wins` : m.result === 'B' ? `${m.pB} wins` : 'Draw'}
+          🏆 {m.winnerName}
         </div>
       )}
     </div>
