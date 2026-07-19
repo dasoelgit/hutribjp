@@ -248,20 +248,21 @@ async function fetchTableTennisMatches() {
       console.error('TT Doubles fetch error:', doublesError);
     }
 
-    // Combine both
-    const allData = [...(singlesData || []), ...(doublesData || [])];
+    // Combine both with category flag
+    const singles = (singlesData || []).map(m => ({ ...m, _category: 'Singles' }));
+    const doubles = (doublesData || []).map(m => ({ ...m, _category: 'Doubles' }));
+    const allData = [...singles, ...doubles];
 
     if (!allData || allData.length === 0) {
       return [];
     }
 
+    console.log('Raw TT data:', allData);
+
     return allData.map(match => {
-      // Determine if singles or doubles
-      const isSingles = match.player1 !== undefined && match.player2 !== undefined;
-      
-      // Build player names
+      // Build player names based on category
       let pA, pB;
-      if (isSingles) {
+      if (match._category === 'Singles') {
         pA = match.player1 || 'TBD';
         pB = match.player2 || 'TBD';
       } else {
@@ -272,18 +273,18 @@ async function fetchTableTennisMatches() {
         pB = team2 || 'TBD';
       }
 
-      // Extract scores from sets JSONB
+      // Extract sets from sets JSONB
+      let sets = [];
       let scoreA = null;
       let scoreB = null;
       let result = null;
-      let sets = [];
 
       if (match.sets && Array.isArray(match.sets) && match.sets.length > 0) {
         sets = match.sets.map(s => ({
           sA: s.p1 || 0,
           sB: s.p2 || 0
         }));
-        // Calculate total scores
+        // Calculate total scores (for display fallback)
         scoreA = sets.reduce((sum, s) => sum + s.sA, 0);
         scoreB = sets.reduce((sum, s) => sum + s.sB, 0);
       }
@@ -316,11 +317,13 @@ async function fetchTableTennisMatches() {
         roundLabel = stage || '';
       }
 
-      const venue = match.table_number ? `Table ${match.table_number}` : '';
+      // Use TT venue from config
+      const venue = VENUES["Table Tennis"];
 
       return {
         id: match.id,
         sport: 'Table Tennis',
+        category: match._category, // 'Singles' or 'Doubles'
         tournamentName: 'Turnamen Tenis Meja - HUT RI 2026 Bintara Jaya Permai',
         round: roundLabel,
         pA: pA,
@@ -331,7 +334,7 @@ async function fetchTableTennisMatches() {
         scoreA: scoreA,
         scoreB: scoreB,
         result: result,
-        sets: sets,
+        sets: sets, // Individual sets array
         status: status,
         kind: 'match',
         _raw: match
@@ -987,9 +990,16 @@ function MatchCard({ m, lookupParticipant, onClick, official }) {
 
   let pA, pB;
   if (m.sport === 'Badminton' || m.sport === 'Table Tennis') {
-  pA = typeof m.pA === 'object' ? m.pA : { name: m.pA || 'TBD', isTbd: true };
-  pB = typeof m.pB === 'object' ? m.pB : { name: m.pB || 'TBD', isTbd: true };
+  // For Table Tennis, pA/pB are already strings
+  if (m.sport === 'Table Tennis') {
+    pA = { name: m.pA || 'TBD', isTbd: true };
+    pB = { name: m.pB || 'TBD', isTbd: true };
+  } else {
+    // Badminton - may be object or string
+    pA = typeof m.pA === 'object' ? m.pA : { name: m.pA || 'TBD', isTbd: true };
+    pB = typeof m.pB === 'object' ? m.pB : { name: m.pB || 'TBD', isTbd: true };
   }
+}  
   else {
     pA = lookupParticipant(m.sport, m.pA);
     pB = lookupParticipant(m.sport, m.pB);
@@ -1064,18 +1074,43 @@ function MatchCard({ m, lookupParticipant, onClick, official }) {
       );
     }
 
-    if (m.sport === 'Badminton' || m.sport === 'Table Tennis') {
-      if (m.scoreA === null || m.scoreB === null) {
-        return <div style={{ color: C.faint, fontWeight: 600, fontSize: 13, minWidth: 44, textAlign: "center" }}>vs</div>;
-      }
-      return (
-        <div style={{ display: "flex", alignItems: "center", gap: 3, minWidth: 44, justifyContent: "center" }}>
-          <span style={{ fontSize: 18, fontWeight: 900, color: m.scoreA > m.scoreB ? C.ink : C.muted }}>{m.scoreA}</span>
-          <span style={{ color: C.faint, fontSize: 14 }}>–</span>
-          <span style={{ fontSize: 18, fontWeight: 900, color: m.scoreB > m.scoreA ? C.ink : C.muted }}>{m.scoreB}</span>
+    if (m.sport === 'Badminton') {
+  if (m.scoreA === null || m.scoreB === null) {
+    return <div style={{ color: C.faint, fontWeight: 600, fontSize: 13, minWidth: 44, textAlign: "center" }}>vs</div>;
+  }
+  return (
+    <div style={{ display: "flex", alignItems: "center", gap: 3, minWidth: 44, justifyContent: "center" }}>
+      <span style={{ fontSize: 18, fontWeight: 900, color: m.scoreA > m.scoreB ? C.ink : C.muted }}>{m.scoreA}</span>
+      <span style={{ color: C.faint, fontSize: 14 }}>–</span>
+      <span style={{ fontSize: 18, fontWeight: 900, color: m.scoreB > m.scoreA ? C.ink : C.muted }}>{m.scoreB}</span>
+    </div>
+  );
+}
+
+// Table Tennis - show sets
+if (m.sport === 'Table Tennis') {
+  if (!m.sets || m.sets.length === 0 || m.status === 'scheduled') {
+    return <div style={{ color: C.faint, fontWeight: 600, fontSize: 13, minWidth: 44, textAlign: "center" }}>vs</div>;
+  }
+  // Show all sets
+  return (
+    <div style={{ display: "flex", flexDirection: "column", alignItems: "center", minWidth: 44 }}>
+      {m.sets.map((s, i) => (
+        <div key={i} style={{ display: "flex", alignItems: "center", gap: 2, fontSize: 11 }}>
+          <span style={{ fontWeight: 700, color: C.ink }}>{s.sA}</span>
+          <span style={{ color: C.faint }}>–</span>
+          <span style={{ fontWeight: 700, color: C.ink }}>{s.sB}</span>
         </div>
-      );
-    }
+      ))}
+      {/* Show winner indicator */}
+      {m.result && (
+        <div style={{ fontSize: 9, color: C.greenText, fontWeight: 600, marginTop: 2 }}>
+          {m.result === 'A' ? `${m.pA} wins` : m.result === 'B' ? `${m.pB} wins` : 'Draw'}
+        </div>
+      )}
+    </div>
+  );
+}
 
     if (meta.scoringType === "chess") {
       const label = res === "A" ? "1–0" : res === "B" ? "0–1" : "½–½";
@@ -1165,25 +1200,53 @@ function MatchCard({ m, lookupParticipant, onClick, official }) {
       )}
 
       <div style={{ display: "flex", gap: 6, alignItems: "center", marginBottom: 6, flexWrap: "wrap" }}>
-        <Pill status={m.status} />
-        <SportBadge sport={m.sport} />
-        {tournamentBadge}
-        {m.round && (
-          <span
-            style={{
-              fontSize: 11,
-              color: C.muted,
-              background: C.surface,
-              border: `1px solid ${C.border}`,
-              borderRadius: 99,
-              padding: "1px 8px",
-            }}
-          >
-            {m.round}
-          </span>
-        )}
-      </div>
-
+  <Pill status={m.status} />
+  <SportBadge sport={m.sport} />
+  {m.category && (
+    <span
+      style={{
+        fontSize: 10,
+        fontWeight: 700,
+        color: C.bluText,
+        background: C.bluBg,
+        border: `1px solid ${C.bluBorder}`,
+        borderRadius: 99,
+        padding: "1px 10px",
+      }}
+    >
+      {m.category}
+    </span>
+  )}
+  {m.tournamentName && m.sport === 'Badminton' && (
+    <span
+      style={{
+        fontSize: 10,
+        fontWeight: 700,
+        color: C.red,
+        background: C.redFaint,
+        border: `1px solid #FECACA`,
+        borderRadius: 99,
+        padding: "1px 10px",
+      }}
+    >
+      {m.tournamentName}
+    </span>
+  )}
+  {m.round && (
+    <span
+      style={{
+        fontSize: 11,
+        color: C.muted,
+        background: C.surface,
+        border: `1px solid ${C.border}`,
+        borderRadius: 99,
+        padding: "1px 8px",
+      }}
+    >
+      {m.round}
+    </span>
+  )}
+</div>
       <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
         <NameA p={pA} side="A" />
         <Score />
