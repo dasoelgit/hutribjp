@@ -16,10 +16,6 @@ const sportsSupabase = createClient(SPORTS_URL, SPORTS_KEY);
 const CHESS_TABLE = "hut_ri_bjp_2026_chess";
 const DOMINO_TABLE = "hut_ri_bjp_2026_domino";
 
-// ─── TABLE TENNIS TABLES ──────────────────────────────────────────────────
-const TT_SINGLES_TABLE = "tt_singles_matches";
-const TT_DOUBLES_TABLE = "tt_doubles_matches";
-
 // ─── VENUE CONFIG ──────────────────────────────────────────────────────────
 const VENUES = {
   "Badminton": "GOR RW 011 BJP",
