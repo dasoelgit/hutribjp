@@ -858,7 +858,7 @@ function ProgramCard({ e }) {
 }
 
 // ─── MATCH CARD ─────────────────────────────────────────────────────────────
-function MatchCard({ m, lookupParticipant, onClick }) {
+function MatchCard({ m, lookupParticipant, onClick, official }) {
   const meta = SPORT_META[m.sport] ?? { emoji: "🏅", scoringType: "points" };
 
   let pA, pB;
@@ -873,7 +873,13 @@ function MatchCard({ m, lookupParticipant, onClick }) {
   const res = m.result;
   const [setsA, setsB] = countSets(m.sets, m.sport);
 
-  const canClick = (m.sport === "Chess" || m.sport === "Domino") && m.status !== "finished";
+  // Only allow clicking if user is logged in and has permission
+  const canClick = official && 
+    (official.role === "admin" ||
+     (official.role === "chess_admin" && m.sport === "Chess") ||
+     (official.role === "domino_admin" && m.sport === "Domino")) &&
+    m.status !== "finished";
+
   const hasRT = m.rtA || m.rtB;
 
   const NameA = ({ p, side }) => {
@@ -1051,7 +1057,6 @@ function MatchCard({ m, lookupParticipant, onClick }) {
             {m.round}
           </span>
         )}
-        {/* Venue removed from top row */}
       </div>
 
       <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
@@ -1247,11 +1252,27 @@ export default function App() {
   };
 
   const handleMatchClick = (match) => {
-    if ((match.sport === "Chess" || match.sport === "Domino") && match.status !== "finished") {
-      setScoreModal(match);
-    }
-  };
-
+  // Only allow if user is logged in
+  if (!official) {
+    showToast("Please login first", "error");
+    return;
+  }
+  
+  // Check if user has permission for this sport
+  const hasPermission = 
+    official.role === "admin" ||
+    (official.role === "chess_admin" && match.sport === "Chess") ||
+    (official.role === "domino_admin" && match.sport === "Domino");
+  
+  if (!hasPermission) {
+    showToast("You don't have permission to score this sport", "error");
+    return;
+  }
+  
+  if ((match.sport === "Chess" || match.sport === "Domino") && match.status !== "finished") {
+    setScoreModal(match);
+  }
+};
   // ── style atoms ───────────────────────────────────────────────────────────
   const inp={background:C.surface,border:`1.5px solid ${C.border}`,borderRadius:8,color:C.ink,padding:"9px 12px",fontSize:13,width:"100%",boxSizing:"border-box"};
   const lbl={fontSize:10,color:C.muted,fontWeight:700,display:"block",marginBottom:4,letterSpacing:1};
@@ -1285,9 +1306,9 @@ export default function App() {
               </div>
               <div style={{flex:1}}>
                 {item.kind==="match"
-                  ? <MatchCard m={item} lookupParticipant={lookupParticipant} onClick={() => handleMatchClick(item)}/>
-                  : <ProgramCard e={item}/>
-                }
+  ? <MatchCard m={item} lookupParticipant={lookupParticipant} onClick={() => handleMatchClick(item)} official={official}/>
+  : <ProgramCard e={item}/>
+}
               </div>
             </div>
           ))}
