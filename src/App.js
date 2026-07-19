@@ -44,17 +44,6 @@ const C = {
   amberText:"#92400E", amberBg:"#FFFBEB", amberBorder:"#FDE68A",
 };
 
-// ─── FLAG BADGE ─────────────────────────────────────────────────────────────
-const FlagBadge = ({ flag, size = 18 }) => (
-  <span style={{
-    display:"inline-flex", alignItems:"center", justifyContent:"center",
-    width: size + 8, height: size,
-    background: C.redDeep, color: C.white,
-    fontSize: size * 0.6, fontWeight: 900, borderRadius: 4,
-    letterSpacing: "0.5px", flexShrink: 0, fontFamily: "monospace",
-  }}>{flag}</span>
-);
-
 // ─── SPORT CONFIG ────────────────────────────────────────────────────────────
 const SPORT_META = {
   "Badminton":            { emoji:"🏸", scoringType:"sets",    matchType:"doubles", bestOf:3,  pointsPerSet:21 },
@@ -98,13 +87,6 @@ const CLUBS_INIT = [
 
 const PLAYERS_INIT = [];
 const PAIRS_INIT = [];
-
-const rtFlag = (rtName) => {
-  if(!rtName) return "09";
-  const m = rtName.match(/(\d{1,2})$/);
-  return m ? String(+m[1]).padStart(2,"0") : "09";
-};
-
 const seedProgram = () => [];
 
 // ─── HELPERS ────────────────────────────────────────────────────────────────
