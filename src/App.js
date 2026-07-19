@@ -1149,22 +1149,6 @@ if (m.sport === 'Table Tennis') {
     );
   };
 
-  const tournamentBadge = m.sport === 'Badminton' && m.tournamentName ? (
-    <span
-      style={{
-        fontSize: 10,
-        fontWeight: 700,
-        color: C.red,
-        background: C.redFaint,
-        border: `1px solid #FECACA`,
-        borderRadius: 99,
-        padding: "1px 10px",
-      }}
-    >
-      {m.tournamentName}
-    </span>
-  ) : null;
-
   return (
     <div
       onClick={canClick ? onClick : undefined}
