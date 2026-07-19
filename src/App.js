@@ -358,17 +358,8 @@ const SportBadge = ({sport}) => {
 // ─── LOGIN MODAL ────────────────────────────────────────────────────────────
 function LoginModal({ onLogin, onCancel, accounts }) {
   const [u,setU]=useState(""), [p,setP]=useState(""), [err,setErr]=useState("");
-  
-  // Debug logs
-  console.log('LoginModal - accounts received:', accounts);
-  console.log('LoginModal - accounts length:', accounts?.length);
-  
   const attempt=()=>{ 
-    console.log('Login attempt - username:', u);
-    console.log('Login attempt - password:', p);
-    console.log('Login attempt - accounts array:', accounts);
     const c=accounts.find(x=>x.username===u && x.password===p); 
-    console.log('Login attempt - found user:', c);
     c ? onLogin(c) : setErr("Invalid credentials."); 
   };
   
