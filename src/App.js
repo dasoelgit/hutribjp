@@ -49,7 +49,7 @@ const SPORT_META = {
   "Badminton":            { emoji:"🏸", scoringType:"sets",    matchType:"doubles", bestOf:3,  pointsPerSet:21 },
   "Table Tennis":         { emoji:"🏓", scoringType:"sets",    matchType:"doubles", bestOf:5,  pointsPerSet:11 },
   "Chess":                { emoji:"♟️", scoringType:"chess",   matchType:"singles", bestOf:1 },
-  "Domino":               { emoji:"🀱", scoringType:"points",  matchType:"doubles", bestOf:1 },
+  "Gaple":               { emoji:"🀱", scoringType:"points",  matchType:"doubles", bestOf:1 },
 };
 const SPORTS = Object.keys(SPORT_META);
 
@@ -415,21 +415,40 @@ async function fetchSportMatches(table, sportName) {
       else if (match.status === 'in_progress' || match.status === 'live') status = 'live';
       else if (match.status === 'scheduled' || match.status === 'pending') status = 'scheduled';
 
-      const venue = match.venue || VENUES[sportName] || '';
+      // Derive result from scores (same for both Chess & Domino)
+      const hasScore = match.scoreA != null && match.scoreB != null;
+      const result = (status === 'finished' && hasScore)
+        ? (match.scoreA > match.scoreB ? 'A'
+          : match.scoreB > match.scoreA ? 'B'
+          : 'draw')
+        : null;
+
+      // For Domino: single score, for Chess: single score
+      const sets = hasScore ? [{ sA: match.scoreA, sB: match.scoreB }] : [];
+
+      // Get clean player names (without RT in name)
+      let pA = match.pA || 'TBD';
+      let pB = match.pB || 'TBD';
+
+      // Clean RT from name if it exists (for existing data)
+      pA = pA.replace(/\s*\(RT\s*\d+\)\s*/i, '').trim();
+      pB = pB.replace(/\s*\(RT\s*\d+\)\s*/i, '').trim();
 
       return {
         id: match.id,
         sport: sportName,
         round: match.round || '',
-        pA: match.pA || 'TBD',
-        rtA: match.rtA || '',
-        pB: match.pB || 'TBD',
-        rtB: match.rtB || '',
+        pA: pA,
+        rtA: match.rtA || match.rta || '',
+        pB: pB,
+        rtB: match.rtB || match.rtb || '',
         date: match.date || '',
         time: match.time || '',
-        venue: venue,
+        venue: match.venue || VENUES[sportName] || '',
         scoreA: match.scoreA ?? null,
         scoreB: match.scoreB ?? null,
+        result: result,
+        sets: sets,
         status: status,
         kind: 'match',
         _raw: match
@@ -1105,74 +1124,93 @@ function MatchCard({ m, lookupParticipant, onClick, official }) {
   };
 
   const Score = () => {
-    if (m.status === "scheduled") {
-      return (
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "center", padding: "0 4px", minWidth: 44 }}>
-          <span style={{ color: C.faint, fontWeight: 600, fontSize: 13 }}>{canClick ? "Tap →" : "vs"}</span>
-        </div>
-      );
+  // Scheduled matches
+  if (m.status === "scheduled") {
+    return <div style={{ color: C.faint, fontWeight: 600, fontSize: 13, minWidth: 44, textAlign: "center" }}>vs</div>;
+  }
+
+  // Domino - show direct score
+  if (m.sport === 'Domino') {
+    if (m.scoreA === null || m.scoreB === null) {
+      return <div style={{ color: C.faint, fontWeight: 600, fontSize: 13, minWidth: 44, textAlign: "center" }}>vs</div>;
     }
-
-    if (m.sport === 'Badminton') {
-  if (m.scoreA === null || m.scoreB === null) {
-    return <div style={{ color: C.faint, fontWeight: 600, fontSize: 13, minWidth: 44, textAlign: "center" }}>vs</div>;
-  }
-  return (
-    <div style={{ display: "flex", alignItems: "center", gap: 3, minWidth: 44, justifyContent: "center" }}>
-      <span style={{ fontSize: 18, fontWeight: 900, color: m.scoreA > m.scoreB ? C.ink : C.muted }}>{m.scoreA}</span>
-      <span style={{ color: C.faint, fontSize: 14 }}>–</span>
-      <span style={{ fontSize: 18, fontWeight: 900, color: m.scoreB > m.scoreA ? C.ink : C.muted }}>{m.scoreB}</span>
-    </div>
-  );
-}
-
-// Table Tennis - show match score (sets won)
-if (m.sport === 'Table Tennis') {
-  if (m.status === 'scheduled' || !m.sets || m.sets.length === 0) {
-    return <div style={{ color: C.faint, fontWeight: 600, fontSize: 13, minWidth: 44, textAlign: "center" }}>vs</div>;
-  }
-  
-  // Check if any sets have been played
-  const hasScores = m.sets.some(s => s.sA > 0 || s.sB > 0);
-  if (!hasScores) {
-    return <div style={{ color: C.faint, fontWeight: 600, fontSize: 13, minWidth: 44, textAlign: "center" }}>vs</div>;
-  }
-  
-  return (
-    <div style={{ display: "flex", flexDirection: "column", alignItems: "center", minWidth: 44 }}>
-      <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
+    return (
+      <div style={{ display: "flex", alignItems: "center", gap: 3, minWidth: 44, justifyContent: "center" }}>
         <span style={{ fontSize: 18, fontWeight: 900, color: m.scoreA > m.scoreB ? C.ink : C.muted }}>
           {m.scoreA}
         </span>
-        <span style={{ color: C.faint, fontSize: 16 }}>–</span>
+        <span style={{ color: C.faint, fontSize: 14 }}>–</span>
         <span style={{ fontSize: 18, fontWeight: 900, color: m.scoreB > m.scoreA ? C.ink : C.muted }}>
           {m.scoreB}
         </span>
       </div>
-      {m.result && m.result !== 'draw' && (
-        <div style={{ fontSize: 9, color: C.greenText, fontWeight: 600, marginTop: 2 }}>
-          🏆 {m.result === 'A' ? m.pA?.name || 'Player A' : m.pB?.name || 'Player B'}
-        </div>
-      )}
-    </div>
-  );
-}
-    if (meta.scoringType === "chess") {
-      const label = res === "A" ? "1–0" : res === "B" ? "0–1" : "½–½";
-      return <div style={{ fontSize: 18, fontWeight: 800, color: C.ink, minWidth: 44, textAlign: "center" }}>{label}</div>;
-    }
+    );
+  }
 
-    if (meta.scoringType === "points") {
-      const sA = meta.scoringType === "points" && m.sets?.length ? m.sets[0].sA : setsA;
-      const sB = meta.scoringType === "points" && m.sets?.length ? m.sets[0].sB : setsB;
-      return (
-        <div style={{ display: "flex", alignItems: "center", gap: 3, minWidth: 44, justifyContent: "center" }}>
-          <span style={{ fontSize: 18, fontWeight: 900, color: res === "A" ? C.ink : C.muted }}>{sA}</span>
-          <span style={{ color: C.faint, fontSize: 14 }}>–</span>
-          <span style={{ fontSize: 18, fontWeight: 900, color: res === "B" ? C.ink : C.muted }}>{sB}</span>
-        </div>
-      );
+  // Chess - show 1-0, 0-1, ½-½
+  if (m.sport === 'Chess') {
+    if (m.scoreA === null || m.scoreB === null || m.status === 'scheduled') {
+      return <div style={{ color: C.faint, fontWeight: 600, fontSize: 13, minWidth: 44, textAlign: "center" }}>vs</div>;
     }
+    // Chess uses the result directly
+    const label = m.result === 'A' ? '1–0' : m.result === 'B' ? '0–1' : '½–½';
+    return <div style={{ fontSize: 18, fontWeight: 800, color: C.ink, minWidth: 44, textAlign: "center" }}>{label}</div>;
+  }
+
+  // Badminton - show direct score
+  if (m.sport === 'Badminton') {
+    if (m.scoreA === null || m.scoreB === null) {
+      return <div style={{ color: C.faint, fontWeight: 600, fontSize: 13, minWidth: 44, textAlign: "center" }}>vs</div>;
+    }
+    return (
+      <div style={{ display: "flex", alignItems: "center", gap: 3, minWidth: 44, justifyContent: "center" }}>
+        <span style={{ fontSize: 18, fontWeight: 900, color: m.scoreA > m.scoreB ? C.ink : C.muted }}>{m.scoreA}</span>
+        <span style={{ color: C.faint, fontSize: 14 }}>–</span>
+        <span style={{ fontSize: 18, fontWeight: 900, color: m.scoreB > m.scoreA ? C.ink : C.muted }}>{m.scoreB}</span>
+      </div>
+    );
+  }
+
+  // Table Tennis - show match score (e.g., 2-1)
+  if (m.sport === 'Table Tennis') {
+    if (m.status === 'scheduled' || !m.sets || m.sets.length === 0) {
+      return <div style={{ color: C.faint, fontWeight: 600, fontSize: 13, minWidth: 44, textAlign: "center" }}>vs</div>;
+    }
+    
+    let setsWonA = 0;
+    let setsWonB = 0;
+    m.sets.forEach(s => {
+      if (s.sA > s.sB) setsWonA++;
+      else if (s.sB > s.sA) setsWonB++;
+    });
+    
+    if (setsWonA === 0 && setsWonB === 0) {
+      return <div style={{ color: C.faint, fontWeight: 600, fontSize: 13, minWidth: 44, textAlign: "center" }}>vs</div>;
+    }
+    
+    return (
+      <div style={{ display: "flex", flexDirection: "column", alignItems: "center", minWidth: 44 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
+          <span style={{ fontSize: 18, fontWeight: 900, color: setsWonA > setsWonB ? C.ink : C.muted }}>
+            {setsWonA}
+          </span>
+          <span style={{ color: C.faint, fontSize: 16 }}>–</span>
+          <span style={{ fontSize: 18, fontWeight: 900, color: setsWonB > setsWonA ? C.ink : C.muted }}>
+            {setsWonB}
+          </span>
+        </div>
+        {m.winnerName && (
+          <div style={{ fontSize: 9, color: C.greenText, fontWeight: 600, marginTop: 2 }}>
+            🏆 {m.winnerName}
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  // Fallback
+  return <div style={{ color: C.faint, fontWeight: 600, fontSize: 13, minWidth: 44, textAlign: "center" }}>vs</div>;
+};
 
     return (
       <div style={{ display: "flex", flexDirection: "column", alignItems: "center", minWidth: 44 }}>
