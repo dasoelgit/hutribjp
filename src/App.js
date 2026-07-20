@@ -1302,8 +1302,6 @@ export default function App() {
   const [official, setOfficial] = useState(null);
   const [showLogin, setShowLogin] = useState(false);
   const progIdRef = useRef(10);
-  const logoClickCount = useRef(0);
-  const logoClickTimer = useRef(null);
 
   // ─── LOAD BADMINTON DATA ──────────────────────────────────────────────────
   useEffect(() => {
@@ -1482,12 +1480,9 @@ useEffect(() => {
 };
   // ── style atoms ───────────────────────────────────────────────────────────
   const inp={background:C.surface,border:`1.5px solid ${C.border}`,borderRadius:8,color:C.ink,padding:"9px 12px",fontSize:13,width:"100%",boxSizing:"border-box"};
-  const lbl={fontSize:10,color:C.muted,fontWeight:700,display:"block",marginBottom:4,letterSpacing:1};
-  const primaryBtn={padding:"10px 20px",borderRadius:9,border:"none",background:`linear-gradient(135deg,${C.redDeep},${C.red})`,color:C.white,cursor:"pointer",fontWeight:800,fontSize:13,boxShadow:`0 4px 16px ${C.redGlow}`};
   const ghostBtn=(active)=>({padding:"6px 13px",borderRadius:8,cursor:"pointer",fontWeight:600,fontSize:12,border:`1.5px solid ${active?C.red:C.border}`,background:active?C.redFaint:C.white,color:active?C.red:C.body});
   const tabBtn=(active)=>({padding:"9px 16px",borderRadius:8,cursor:"pointer",fontWeight:700,fontSize:13,border:`1.5px solid ${active?C.red:C.border}`,background:active?C.redFaint:C.white,color:active?C.red:C.body});
   const navBtn=(active)=>({padding:"11px 16px",border:"none",cursor:"pointer",fontSize:13,fontWeight:600,borderRadius:"8px 8px 0 0",whiteSpace:"nowrap",background:active?C.white:"transparent",color:active?C.red:C.muted,borderBottom:active?`3px solid ${C.red}`:"3px solid transparent"});
-  const divider=(label)=><div style={{fontSize:10,fontWeight:800,color:C.red,letterSpacing:2,margin:"20px 0 10px",display:"flex",alignItems:"center",gap:8}}><span>{label}</span><span style={{flex:1,height:1,background:C.border}}/></div>;
 
   const ScheduleList = () => {
     const dates = Object.keys(grouped).sort();
