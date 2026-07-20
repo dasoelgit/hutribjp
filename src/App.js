@@ -183,8 +183,8 @@ async function fetchBadmintonMatches() {
         const tm = match.tournament_matches[0];
         if (tm) {
           if (tm.tournaments) {
-            tournamentName = tm.tournaments.name || '';
-          }
+              tournamentName = (tm.tournaments.name || '').replace(/\s+Tournament/i, '');
+            }
           const { stage, round } = tm;
           if (stage === 'group' && round === 1) roundLabel = 'Group Stage';
           else if (stage === 'knockout' && round === 1) roundLabel = 'Final';
