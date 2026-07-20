@@ -1277,6 +1277,7 @@ export default function App() {
   }, [programEvents]);
 
   const [view, setView] = useState("schedule");
+  const [showAllResults, setShowAllResults] = useState(false);
   const [officialTab, setOfficialTab] = useState("program");
   const [filterSport, setFilterSport] = useState("All");
   const [filterStatus, setFilterStatus] = useState("All");
@@ -1596,34 +1597,95 @@ useEffect(() => {
         </>}
 
         {/* ── RESULTS ── */}
-        {view==="results"&&<>
-          <h1 style={{fontSize:20,fontWeight:900,color:C.ink,marginBottom:16}}>Hasil Pertandingan</h1>
-          <div style={{display:"flex",gap:4,flexWrap:"wrap",marginBottom:16}}>
-            {["All",...SPORTS].map(s=>(
-              <button key={s} style={ghostBtn(filterSport===s)} onClick={()=>setFilterSport(s)}>
-                {s!=="All" ? SPORT_META[s]?.emoji+" " : ""}{s==="All" ? "Semua" : SPORT_DISPLAY[s] || s}
-              </button>
-            ))}
-          </div>
-          {resultMatches.filter(m=>filterSport==="All"||m.sport===filterSport)
-            .sort((a,b)=>b.date?.localeCompare(a.date??"")||b.time?.localeCompare(a.time??""))
-            .map((m,i)=>(
-              <div key={i} style={{display:"flex",marginBottom:8}}>
-                <div style={{width:48,paddingTop:16,paddingRight:10,textAlign:"right",flexShrink:0}}>
-                  <span style={{fontSize:12,fontWeight:700,color:C.muted}}>{m.time ? fmtTime(m.time) : "—"}</span>
-                </div>
-                <div style={{flex:1}}><MatchCard m={m} lookupParticipant={lookupParticipant}/></div>
-              </div>
-            ))
-          }
-          {resultMatches.length===0&&(
-            <div style={{textAlign:"center",color:C.faint,padding:48,fontSize:14}}>
-              <div style={{fontSize:36,marginBottom:12}}>🏆</div>
-              <div style={{fontWeight:700,color:C.muted,marginBottom:6}}>No results yet</div>
-              <div style={{fontSize:12}}>Results appear here once you mark a match as finished.</div>
+        {view === "results" && (
+  <>
+    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16, flexWrap: "wrap", gap: 8 }}>
+      <h1 style={{ fontSize: 20, fontWeight: 900, color: C.ink, margin: 0 }}>Hasil Pertandingan</h1>
+      <button
+        onClick={() => setShowAllResults(!showAllResults)}
+        style={{
+          padding: "8px 16px",
+          borderRadius: 8,
+          border: `1.5px solid ${C.border}`,
+          background: showAllResults ? C.redFaint : C.white,
+          color: showAllResults ? C.red : C.muted,
+          cursor: "pointer",
+          fontWeight: 600,
+          fontSize: 13,
+          minHeight: 40
+        }}
+      >
+        {showAllResults ? "📅 Tampilkan Akhir Pekan" : "📋 Tampilkan Semua"}
+      </button>
+    </div>
+
+    {/* Sport filter buttons */}
+    <div style={{ display: "flex", gap: 4, flexWrap: "wrap", marginBottom: 16 }}>
+      {["All", ...SPORTS].map(s => (
+        <button key={s} style={ghostBtn(filterSport === s)} onClick={() => setFilterSport(s)}>
+          {s !== "All" ? SPORT_META[s]?.emoji + " " : ""}
+          {s === "All" ? "Semua" : SPORT_DISPLAY[s] || s}
+        </button>
+      ))}
+    </div>
+
+    {/* Filtered results */}
+    {(() => {
+      // Calculate last weekend (Friday to Sunday)
+      const now = new Date();
+      const day = now.getDay(); // 0=Sunday, 5=Friday, 6=Saturday
+      
+      let friday = new Date(now);
+      let daysToFriday = day >= 5 ? day - 5 : day + 2; // If today is Sat/Sun, go back to Friday
+      friday.setDate(friday.getDate() - daysToFriday);
+      
+      let sunday = new Date(friday);
+      sunday.setDate(sunday.getDate() + 2);
+      
+      // Format for comparison
+      const formatDate = (d) => d.toISOString().split('T')[0];
+      const fridayStr = formatDate(friday);
+      const sundayStr = formatDate(sunday);
+      
+      // Filter matches
+      let filtered = resultMatches.filter(m => filterSport === "All" || m.sport === filterSport);
+      
+      if (!showAllResults) {
+        filtered = filtered.filter(m => {
+          if (!m.date) return false;
+          return m.date >= fridayStr && m.date <= sundayStr;
+        });
+      }
+      
+      if (filtered.length === 0) {
+        return (
+          <div style={{ textAlign: "center", color: C.faint, padding: 48, fontSize: 14 }}>
+            <div style={{ fontSize: 36, marginBottom: 12 }}>🏆</div>
+            <div style={{ fontWeight: 700, color: C.muted, marginBottom: 6 }}>
+              {showAllResults ? "Belum ada hasil" : `Tidak ada hasil untuk akhir pekan ini (${fridayStr} - ${sundayStr})`}
             </div>
-          )}
-        </>}
+            <div style={{ fontSize: 12 }}>
+              {showAllResults ? "Hasil akan muncul setelah pertandingan selesai." : "Coba tampilkan semua hasil."}
+            </div>
+          </div>
+        );
+      }
+      
+      return filtered
+        .sort((a, b) => b.date?.localeCompare(a.date ?? "") || b.time?.localeCompare(a.time ?? ""))
+        .map((m, i) => (
+          <div key={i} style={{ display: "flex", marginBottom: 8 }}>
+            <div style={{ width: 48, paddingTop: 16, paddingRight: 10, textAlign: "right", flexShrink: 0 }}>
+              <span style={{ fontSize: 12, fontWeight: 700, color: C.muted }}>{m.time ? fmtTime(m.time) : "—"}</span>
+            </div>
+            <div style={{ flex: 1 }}>
+              <MatchCard m={m} lookupParticipant={lookupParticipant} />
+            </div>
+          </div>
+        ));
+    })()}
+  </>
+)}
 
         {/* ── OFFICIALS ── */}
         {view==="official"&&official&&<>
