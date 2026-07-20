@@ -562,7 +562,18 @@ const SportBadge = ({sport}) => {
   const meta=SPORT_META[sport]??{emoji:"🏅"};
   const typeColors={singles:["#F5F3FF","#6D28D9"],doubles:["#FFF7ED","#C2410C"]};
   const [bg,color]=typeColors[meta.matchType]??["#F9FAFB","#374151"];
-  return <span style={{display:"inline-flex",alignItems:"center",gap:4,padding:"4px 11px",borderRadius:99,fontSize:13,fontWeight:700,background:bg,color:color,border:`1px solid ${color}33`}}>{meta.emoji} {SPORT_DISPLAY[sport] || sport}</span>;
+  return <span style={{
+    display:"inline-flex",
+    alignItems:"center",
+    gap:4,
+    padding:"3px 10px",
+    borderRadius:99,
+    fontSize:12,
+    fontWeight:700,
+    background:bg,
+    color:color,
+    border:`1px solid ${color}33`
+  }}>{meta.emoji} {SPORT_DISPLAY[sport] || sport}</span>;
 };
 
 // ─── LOGIN MODAL ────────────────────────────────────────────────────────────
