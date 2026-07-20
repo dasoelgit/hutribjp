@@ -36,6 +36,15 @@ const getStageLabel = (stage) => {
   return labels[stage] || stage || '';
 };
 
+const getTournamentDisplayName = (name) => {
+  if (!name) return 'Unknown';
+  return name
+    .replace(/ Tournament$/i, '')
+    .replace(/Men's\s*/i, '')
+    .replace(/Women's\s*/i, '')
+    .trim();
+};
+
 // ─── MATCH NODE ─────────────────────────────────────────────────────────────
 const MatchNode = ({ match, isWinner = false }) => {
   const p1 = match?.p1 || 'TBD';
@@ -43,7 +52,6 @@ const MatchNode = ({ match, isWinner = false }) => {
   const winner = match?.winner || null;
   const isFinished = match?.status === 'finished' || !!winner;
   
-  // Score display
   let scoreDisplay = '';
   if (isFinished && match?.sets && Array.isArray(match.sets)) {
     let s1 = 0, s2 = 0;
@@ -136,7 +144,6 @@ const RoundColumn = ({ title, matches, roundIndex, totalRounds }) => {
       padding: "0 8px",
       position: "relative",
     }}>
-      {/* Round title */}
       <div style={{
         fontSize: 11,
         fontWeight: 700,
@@ -149,12 +156,10 @@ const RoundColumn = ({ title, matches, roundIndex, totalRounds }) => {
         {title}
       </div>
       
-      {/* Matches */}
       {matches.map((match, idx) => (
         <MatchNode key={idx} match={match} />
       ))}
       
-      {/* Connector lines */}
       {!isLast && matches.length > 1 && (
         <div style={{
           position: "absolute",
@@ -174,7 +179,108 @@ const RoundColumn = ({ title, matches, roundIndex, totalRounds }) => {
   );
 };
 
-// ─── BRACKET ────────────────────────────────────────────────────────────────
+// ─── SINGLE TOURNAMENT BRACKET ────────────────────────────────────────────
+const SingleTournamentBracket = ({ matches, title }) => {
+  if (!matches || matches.length === 0) {
+    return (
+      <div style={{
+        textAlign: "center",
+        padding: 24,
+        color: C.muted,
+        fontSize: 13,
+        background: C.surface,
+        borderRadius: 8,
+        border: `1px dashed ${C.border}`,
+      }}>
+        No matches for {title}
+      </div>
+    );
+  }
+
+  // Group by stage
+  const groupedByStage = {};
+  matches.forEach(m => {
+    const stage = m.stage || 'unknown';
+    if (!groupedByStage[stage]) groupedByStage[stage] = [];
+    groupedByStage[stage].push(m);
+  });
+
+  const stageOrder = ['group', 'quarterfinal', 'semifinal', 'final'];
+  const sortedStages = Object.keys(groupedByStage).sort((a, b) => {
+    const aIdx = stageOrder.indexOf(a);
+    const bIdx = stageOrder.indexOf(b);
+    if (aIdx === -1 && bIdx === -1) return a.localeCompare(b);
+    if (aIdx === -1) return 1;
+    if (bIdx === -1) return -1;
+    return aIdx - bIdx;
+  });
+
+  if (sortedStages.length === 0) {
+    return null;
+  }
+
+  return (
+    <div style={{ 
+      background: C.card, 
+      border: `1.5px solid ${C.border}`, 
+      borderRadius: 10, 
+      padding: 16,
+      marginBottom: 16,
+    }}>
+      <div style={{ 
+        fontWeight: 700, 
+        fontSize: 14, 
+        color: C.ink, 
+        marginBottom: 12,
+        display: "flex",
+        alignItems: "center",
+        gap: 8,
+      }}>
+        <span>🏆</span> {title}
+      </div>
+      
+      {sortedStages.length === 1 ? (
+        <div style={{ 
+          display: "flex", 
+          flexDirection: "column", 
+          alignItems: "center", 
+          gap: 12,
+          maxWidth: 400,
+          margin: "0 auto",
+        }}>
+          <div style={{ fontSize: 11, fontWeight: 600, color: C.muted, textTransform: "uppercase" }}>
+            {getStageLabel(sortedStages[0])}
+          </div>
+          {groupedByStage[sortedStages[0]].map((match, idx) => (
+            <MatchNode key={idx} match={match} />
+          ))}
+        </div>
+      ) : (
+        <div style={{ 
+          display: "flex", 
+          justifyContent: "center",
+          alignItems: "flex-start",
+          gap: 12,
+          minWidth: "fit-content",
+          padding: "4px 0",
+          overflowX: "auto",
+        }}>
+          {sortedStages.map((stage, idx) => (
+            <RoundColumn
+              key={stage}
+              title={getStageLabel(stage)}
+              matches={groupedByStage[stage]}
+              roundIndex={idx}
+              totalRounds={sortedStages.length}
+            />
+          ))}
+        </div>
+      )}
+    </div>
+  );
+};
+
+// ─── MAIN BRACKET ──────────────────────────────────────────────────────────
 const BracketHutri = ({ matches, title = "Tournament Bracket" }) => {
   if (!matches || matches.length === 0) {
     return (
@@ -190,88 +296,54 @@ const BracketHutri = ({ matches, title = "Tournament Bracket" }) => {
     );
   }
 
-  // Group matches by stage
-  const groupedByStage = {};
+  // Group by tournament (for Badminton: Men's A, Men's B, Women's)
+  // For other sports, use a single group
+  const tournamentGroups = {};
+  
   matches.forEach(m => {
-    const stage = m.stage || 'unknown';
-    if (!groupedByStage[stage]) groupedByStage[stage] = [];
-    groupedByStage[stage].push(m);
+    // Use tournamentName if available, otherwise use sport name
+    const key = m.tournamentName || m.sport || 'Unknown';
+    if (!tournamentGroups[key]) tournamentGroups[key] = [];
+    tournamentGroups[key].push(m);
   });
 
-  // Define stage order
-  const stageOrder = ['group', 'quarterfinal', 'semifinal', 'final'];
-  const sortedStages = Object.keys(groupedByStage).sort((a, b) => {
-    const aIdx = stageOrder.indexOf(a);
-    const bIdx = stageOrder.indexOf(b);
+  // Sort tournament names for consistent display
+  const sortedTournaments = Object.keys(tournamentGroups).sort((a, b) => {
+    // Custom sort: Men's A, Men's B, Women's
+    const order = ['Men\'s Group A Tournament', 'Men\'s Group B Tournament', 'Women\'s Tournament'];
+    const aIdx = order.indexOf(a);
+    const bIdx = order.indexOf(b);
     if (aIdx === -1 && bIdx === -1) return a.localeCompare(b);
     if (aIdx === -1) return 1;
     if (bIdx === -1) return -1;
     return aIdx - bIdx;
   });
 
-  // If only one stage, just render it
-  if (sortedStages.length === 1) {
-    const stage = sortedStages[0];
-    return (
-      <div style={{ 
-        background: C.card, 
-        border: `1.5px solid ${C.border}`, 
-        borderRadius: 12, 
-        padding: 20,
-        overflowX: "auto",
-      }}>
-        <div style={{ fontWeight: 800, fontSize: 16, color: C.ink, marginBottom: 16, textAlign: "center" }}>
-          {title}
-        </div>
-        <div style={{ 
-          display: "flex", 
-          flexDirection: "column", 
-          alignItems: "center", 
-          gap: 12,
-          maxWidth: 400,
-          margin: "0 auto",
-        }}>
-          <div style={{ fontSize: 12, fontWeight: 600, color: C.muted, textTransform: "uppercase" }}>
-            {getStageLabel(stage)}
-          </div>
-          {groupedByStage[stage].map((match, idx) => (
-            <MatchNode key={idx} match={match} />
-          ))}
-        </div>
-      </div>
-    );
-  }
-
-  // Multiple stages - render as columns
   return (
     <div style={{ 
-      background: C.card, 
-      border: `1.5px solid ${C.border}`, 
+      background: C.surface, 
       borderRadius: 12, 
-      padding: 20,
-      overflowX: "auto",
+      padding: 16,
     }}>
-      <div style={{ fontWeight: 800, fontSize: 16, color: C.ink, marginBottom: 16, textAlign: "center" }}>
-        {title}
-      </div>
-      <div style={{ 
-        display: "flex", 
-        justifyContent: "center",
-        alignItems: "flex-start",
-        gap: 16,
-        minWidth: "fit-content",
-        padding: "8px 0",
-      }}>
-        {sortedStages.map((stage, idx) => (
-          <RoundColumn
-            key={stage}
-            title={getStageLabel(stage)}
-            matches={groupedByStage[stage]}
-            roundIndex={idx}
-            totalRounds={sortedStages.length}
-          />
-        ))}
-      </div>
+      {title && (
+        <div style={{ 
+          fontWeight: 800, 
+          fontSize: 18, 
+          color: C.ink, 
+          marginBottom: 16,
+          textAlign: "center",
+        }}>
+          {title}
+        </div>
+      )}
+      
+      {sortedTournaments.map(tournament => (
+        <SingleTournamentBracket
+          key={tournament}
+          matches={tournamentGroups[tournament]}
+          title={getTournamentDisplayName(tournament)}
+        />
+      ))}
     </div>
   );
 };
