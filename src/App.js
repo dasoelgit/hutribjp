@@ -1625,89 +1625,91 @@ useEffect(() => {
   {/* Schedule */}
         {view==="schedule"&&(
   <>
-    <div style={{display:"flex",flexDirection:"column",gap:10,marginBottom:18}}>
-      <div style={{display:"flex",flexWrap:"wrap",gap:6}}>
-        <span style={{fontSize:11,fontWeight:700,color:C.muted,display:"flex",alignItems:"center",marginRight:4}}>Olahraga:</span>
+    <div style={{display:"flex",flexDirection:"column",gap:8,marginBottom:14}}>
+      <div style={{display:"flex",flexWrap:"wrap",gap:4}}>
         {["All", ...SPORTS].map(s=>(
           <button
             key={s}
             onClick={()=>setFilterSport(s)}
             style={{
-              padding:"6px 14px",
+              padding:"4px 10px",
               borderRadius:99,
               border:`1.5px solid ${filterSport===s?C.red:C.border}`,
               background:filterSport===s?C.redFaint:C.white,
               color:filterSport===s?C.red:C.body,
-              fontWeight:filterSport===s?800:600,
-              fontSize:12,
+              fontWeight:filterSport===s?700:500,
+              fontSize:11,
               cursor:"pointer",
-              minHeight:36,
-              transition:"all 0.15s"
+              minHeight:30,
+              transition:"all 0.15s",
+              display:"inline-flex",
+              alignItems:"center",
+              gap:3
             }}
           >
-            {s==="All"?"Semua":SPORT_DISPLAY[s]||s}
+            {s==="All" ? "📋 Semua" : `${SPORT_META[s]?.emoji || ''} ${SPORT_DISPLAY[s]||s}`}
           </button>
         ))}
       </div>
       
-      <div style={{display:"flex",flexWrap:"wrap",gap:6,alignItems:"center"}}>
-        <span style={{fontSize:11,fontWeight:700,color:C.muted,display:"flex",alignItems:"center",marginRight:4}}>Jenis:</span>
+      <div style={{display:"flex",flexWrap:"wrap",gap:4,alignItems:"center"}}>
         {["All", "match", "program"].map(k=>(
           <button
             key={k}
             onClick={()=>setFilterKind(k)}
             style={{
-              padding:"6px 14px",
+              padding:"4px 10px",
               borderRadius:99,
               border:`1.5px solid ${filterKind===k?C.red:C.border}`,
               background:filterKind===k?C.redFaint:C.white,
               color:filterKind===k?C.red:C.body,
-              fontWeight:filterKind===k?800:600,
-              fontSize:12,
+              fontWeight:filterKind===k?700:500,
+              fontSize:11,
               cursor:"pointer",
-              minHeight:36,
+              minHeight:30,
               transition:"all 0.15s"
             }}
           >
-            {k==="All"?"Semua":k==="match"?"Pertandingan":"Acara"}
+            {k==="All" ? "📋 Semua" : k==="match" ? "🏟️ Pertandingan" : "📅 Acara"}
           </button>
         ))}
-      </div>
-      
-      <div style={{display:"flex",flexWrap:"wrap",gap:6,alignItems:"center"}}>
-        <span style={{fontSize:11,fontWeight:700,color:C.muted,display:"flex",alignItems:"center",marginRight:4}}>🔍 Cari:</span>
+        
+        <span style={{fontSize:11,color:C.muted,marginLeft:4}}>|</span>
+        
         <input
           type="text"
-          placeholder="Cari nama peserta..."
+          placeholder="🔍 Cari nama..."
           value={searchQuery}
           onChange={e=>setSearchQuery(e.target.value)}
           style={{
             ...inp,
             width:"auto",
-            minWidth:200,
-            padding:"6px 14px",
-            fontSize:13,
-            minHeight:36,
+            minWidth:140,
+            padding:"4px 10px",
+            fontSize:11,
+            minHeight:30,
             flex:1,
-            maxWidth:300
+            maxWidth:200
           }}
         />
         {searchQuery && (
           <button
             onClick={()=>setSearchQuery("")}
             style={{
-              padding:"6px 12px",
+              padding:"4px 8px",
               borderRadius:99,
               border:`1.5px solid ${C.border}`,
               background:C.surface,
               color:C.muted,
-              fontSize:12,
+              fontSize:11,
               cursor:"pointer",
-              minHeight:36,
-              fontWeight:600
+              minHeight:30,
+              fontWeight:600,
+              display:"inline-flex",
+              alignItems:"center"
             }}
           >
-            ✕ Hapus
+            ✕
           </button>
         )}
       </div>
@@ -1715,7 +1717,6 @@ useEffect(() => {
     <ScheduleList/>
   </>
 )}
-
   {/* Results */}
         {view==="results"&&(
   <>
