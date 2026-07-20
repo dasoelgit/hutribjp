@@ -220,59 +220,124 @@ async function fetchBadmintonMatches() {
 }
 
 // ─── FETCH TABLE TENNIS MATCHES ──────────────────────────────────────────
+
+// Dedupe function (keeps latest row per logical match)
+function dedupeLatestMatches(rows, keyFn) {
+  const byKey = new Map();
+  for (const row of rows) {
+    const key = keyFn(row);
+    const existing = byKey.get(key);
+    if (!existing || new Date(row.created_at || 0) >= new Date(existing.created_at || 0)) {
+      byKey.set(key, row);
+    }
+  }
+  return Array.from(byKey.values());
+}
+
+const STAGE_LABELS = {
+  group: 'Group Stage',
+  next: 'Next Stage',
+  championship: 'Championship',
+  semifinal: 'Semifinal',
+  final: 'Final',
+};
+
 async function fetchTableTennisMatches() {
   try {
-    const { data: singlesData, error: singlesError } = await sportsSupabase
+    // ─── FETCH GROUP STAGE ──────────────────────────────────────────────
+    const { data: singlesGroup, error: singlesError } = await sportsSupabase
       .from('tt_singles_matches')
       .select('*')
-      .eq('stage', 'group')
-      .order('scheduled_date', { ascending: true })
-      .order('scheduled_time', { ascending: true });
+      .order('created_at', { ascending: true });
 
     if (singlesError) {
       console.error('TT Singles fetch error:', singlesError);
     }
 
-    const { data: doublesData, error: doublesError } = await sportsSupabase
+    const { data: doublesGroup, error: doublesError } = await sportsSupabase
       .from('tt_doubles_matches')
       .select('*')
-      .eq('stage', 'group')
-      .order('scheduled_date', { ascending: true })
-      .order('scheduled_time', { ascending: true });
+      .order('created_at', { ascending: true });
 
     if (doublesError) {
       console.error('TT Doubles fetch error:', doublesError);
     }
 
-    const singles = (singlesData || []).map(m => ({ ...m, _category: 'Singles' }));
-    const doubles = (doublesData || []).map(m => ({ ...m, _category: 'Doubles' }));
-    const allData = [...singles, ...doubles];
+    // Dedupe group matches (append-only tables)
+    const dedupedSingles = dedupeLatestMatches(singlesGroup || [], m =>
+      `${m.group_id}-${m.player1}-${m.player2}`
+    );
+    const dedupedDoubles = dedupeLatestMatches(doublesGroup || [], m =>
+      `${m.group_id}-${m.team1_p1}/${m.team1_p2}-${m.team2_p1}/${m.team2_p2}`
+    );
+
+    // ─── FETCH KNOCKOUT STAGE ────────────────────────────────────────────
+    const { data: knockoutData, error: knockoutError } = await sportsSupabase
+      .from('tt_knockout_matches')
+      .select('*')
+      .order('scheduled_date', { ascending: true })
+      .order('scheduled_time', { ascending: true });
+
+    if (knockoutError) {
+      console.error('TT Knockout fetch error:', knockoutError);
+    }
+
+    // ─── COMBINE ──────────────────────────────────────────────────────────
+    const singles = dedupedSingles.map(m => ({ ...m, _category: 'Singles' }));
+    const doubles = dedupedDoubles.map(m => ({ ...m, _category: 'Doubles' }));
+    const knockout = (knockoutData || []).map(m => ({
+      ...m,
+      _category: m.match_type === 'singles' ? 'Singles' : 'Doubles',
+      _isKnockout: true
+    }));
+
+    const allData = [...singles, ...doubles, ...knockout];
 
     if (!allData || allData.length === 0) {
       return [];
     }
 
+    // Sort by date/time
+    allData.sort((a, b) =>
+      (a.scheduled_date || '').localeCompare(b.scheduled_date || '') ||
+      (a.scheduled_time || '').localeCompare(b.scheduled_time || '')
+    );
+
+    // ─── MAP TO APP FORMAT ──────────────────────────────────────────────
     return allData.map(match => {
-      // Build player objects (same pattern as Badminton)
       let pA = null;
       let pB = null;
+      let roundLabel = '';
+      let isKnockout = match._isKnockout || false;
 
-      if (match._category === 'Singles') {
+      if (isKnockout) {
+        // Knockout: p1/p2 are directly in the row
+        if (match.p1) pA = { name: match.p1, flag: null, club: null };
+        if (match.p2) pB = { name: match.p2, flag: null, club: null };
+        roundLabel = STAGE_LABELS[match.stage] || match.stage || '';
+      } else if (match._category === 'Singles') {
+        // Singles group
         if (match.player1) pA = { name: match.player1, flag: null, club: null };
         if (match.player2) pB = { name: match.player2, flag: null, club: null };
+        const group = match.group_id || '';
+        roundLabel = `Group ${group}`;
       } else {
+        // Doubles group
         const team1 = [match.team1_p1, match.team1_p2].filter(Boolean);
         const team2 = [match.team2_p1, match.team2_p2].filter(Boolean);
         if (team1.length > 0) pA = { name: team1.join(' / '), flag: null, club: null };
         if (team2.length > 0) pB = { name: team2.join(' / '), flag: null, club: null };
+        const group = match.group_id || '';
+        roundLabel = `Group ${group}`;
       }
 
+      // Status
       let status = 'scheduled';
       if (match.winner !== null && match.winner !== undefined && match.winner !== '') {
         status = 'finished';
       }
 
-      // Derive result and sets (same pattern as Badminton)
+      // Sets & scores
       let sets = [];
       let scoreA = 0;
       let scoreB = 0;
@@ -295,14 +360,8 @@ async function fetchTableTennisMatches() {
         result = scoreA > scoreB ? 'A' : scoreB > scoreA ? 'B' : 'draw';
       }
 
-      let roundLabel = '';
-      const stage = match.stage || '';
-      const group = match.group_id || '';
-      if (stage === 'group') {
-        roundLabel = `Group ${group}`;
-      } else {
-        roundLabel = stage || '';
-      }
+      // Venue
+      const venue = match.table_number || match.venue || VENUES["Table Tennis"];
 
       return {
         id: match.id,
@@ -314,7 +373,7 @@ async function fetchTableTennisMatches() {
         pB: pB ?? { name: 'TBD', flag: null, club: null, isTbd: true },
         date: match.scheduled_date || '',
         time: match.scheduled_time || '',
-        venue: match.table_number || VENUES["Table Tennis"],
+        venue: venue,
         scoreA: scoreA,
         scoreB: scoreB,
         result: result,
@@ -322,6 +381,7 @@ async function fetchTableTennisMatches() {
         sets: sets,
         status: status,
         kind: 'match',
+        isKnockout: isKnockout,
         _raw: match
       };
     });
