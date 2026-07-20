@@ -1053,12 +1053,16 @@ function MatchCard({ m, lookupParticipant, onClick, official }) {
   const meta = SPORT_META[m.sport] ?? { emoji: "🏅", scoringType: "points" };
 
   let pA, pB;
- if (m.sport === 'Badminton' || m.sport === 'Table Tennis') {
-  // Both Badminton and TT now use the same participant object pattern
-  pA = typeof m.pA === 'object' && !m.pA.isTbd ? m.pA : { name: m.pA || 'TBD', flag: null, club: null, isTbd: true };
-  pB = typeof m.pB === 'object' && !m.pB.isTbd ? m.pB : { name: m.pB || 'TBD', flag: null, club: null, isTbd: true };
-}  
-  else {
+
+  // Handle different sport types
+  if (m.sport === 'Badminton') {
+    pA = typeof m.pA === 'object' ? m.pA : { name: m.pA || 'TBD', flag: null, club: null, isTbd: true };
+    pB = typeof m.pB === 'object' ? m.pB : { name: m.pB || 'TBD', flag: null, club: null, isTbd: true };
+  } else if (m.sport === 'Table Tennis') {
+    pA = { name: m.pA || 'TBD', flag: null, club: null, isTbd: true };
+    pB = { name: m.pB || 'TBD', flag: null, club: null, isTbd: true };
+  } else {
+    // Chess & Domino
     pA = lookupParticipant(m.sport, m.pA);
     pB = lookupParticipant(m.sport, m.pB);
   }
@@ -1067,7 +1071,7 @@ function MatchCard({ m, lookupParticipant, onClick, official }) {
   const [setsA, setsB] = countSets(m.sets, m.sport);
 
   // Only allow clicking if user is logged in and has permission
-  const canClick = official && 
+  const canClick = official &&
     (official.role === "admin" ||
      (official.role === "chess_admin" && m.sport === "Chess") ||
      (official.role === "domino_admin" && m.sport === "Domino")) &&
@@ -1075,11 +1079,14 @@ function MatchCard({ m, lookupParticipant, onClick, official }) {
 
   const hasRT = m.rtA || m.rtB;
 
-  const NameA = ({ p, side }) => {
+  // ─── Name Component ──────────────────────────────────────────────────────
+  const Name = ({ p, side }) => {
     if (!p || p.isTbd) return <span style={{ color: C.faint }}>TBD</span>;
     const won = res === side;
     return (
       <div style={{ display: "flex", alignItems: "center", gap: 6, flex: 1, minWidth: 0 }}>
+        {hasRT && side === 'A' && m.rtA && <FlagBadge flag={rtFlag(m.rtA)} size={14} />}
+        {hasRT && side === 'B' && m.rtB && <FlagBadge flag={rtFlag(m.rtB)} size={14} />}
         <div style={{ minWidth: 0, flex: 1 }}>
           <div
             style={{
@@ -1087,151 +1094,144 @@ function MatchCard({ m, lookupParticipant, onClick, official }) {
               fontSize: 13,
               color: won ? C.ink : C.body,
               wordBreak: "break-word",
-              lineHeight: 1.3,
+              lineHeight: 1.3
             }}
           >
             {p.name}
           </div>
-          {hasRT && m.rtA && <div style={{ fontSize: 10, color: C.muted }}>{m.rtA}</div>}
+          {hasRT && side === 'A' && m.rtA && <div style={{ fontSize: 10, color: C.muted }}>{m.rtA}</div>}
+          {hasRT && side === 'B' && m.rtB && <div style={{ fontSize: 10, color: C.muted }}>{m.rtB}</div>}
+          {!hasRT && p.club && <div style={{ fontSize: 10, color: C.muted }}>{p.club}</div>}
         </div>
         {won && <span style={{ fontSize: 14, flexShrink: 0 }}>🏆</span>}
       </div>
     );
   };
 
-  const NameB = ({ p, side }) => {
-    if (!p || p.isTbd) return <span style={{ color: C.faint }}>TBD</span>;
-    const won = res === side;
-    return (
-      <div style={{ display: "flex", alignItems: "center", gap: 6, flex: 1, minWidth: 0, justifyContent: "flex-end" }}>
-        {won && <span style={{ fontSize: 14, flexShrink: 0 }}>🏆</span>}
-        <div style={{ minWidth: 0, textAlign: "right", flex: 1 }}>
-          <div
-            style={{
-              fontWeight: won ? 900 : 600,
-              fontSize: 13,
-              color: won ? C.ink : C.body,
-              wordBreak: "break-word",
-              lineHeight: 1.3,
-            }}
-          >
-            {p.name}
-          </div>
-          {hasRT && m.rtB && <div style={{ fontSize: 10, color: C.muted }}>{m.rtB}</div>}
-        </div>
-      </div>
-    );
-  };
-
+  // ─── Score Component ──────────────────────────────────────────────────────
   const Score = () => {
-  // Scheduled matches
-  if (m.status === "scheduled") {
-    return <div style={{ color: C.faint, fontWeight: 600, fontSize: 13, minWidth: 44, textAlign: "center" }}>vs</div>;
-  }
+    // Scheduled matches
+    if (m.status === "scheduled") {
+      return <div style={{ color: C.faint, fontWeight: 600, fontSize: 13, minWidth: 44, textAlign: "center" }}>vs</div>;
+    }
 
-  // Domino - show direct score
-  if (m.sport === 'Domino') {
-    if (m.scoreA === null || m.scoreB === null) {
-      return <div style={{ color: C.faint, fontWeight: 600, fontSize: 13, minWidth: 44, textAlign: "center" }}>vs</div>;
-    }
-    return (
-      <div style={{ display: "flex", alignItems: "center", gap: 3, minWidth: 44, justifyContent: "center" }}>
-        <span style={{ fontSize: 18, fontWeight: 900, color: m.scoreA > m.scoreB ? C.ink : C.muted }}>
-          {m.scoreA}
-        </span>
-        <span style={{ color: C.faint, fontSize: 14 }}>–</span>
-        <span style={{ fontSize: 18, fontWeight: 900, color: m.scoreB > m.scoreA ? C.ink : C.muted }}>
-          {m.scoreB}
-        </span>
-      </div>
-    );
-  }
-
-  // Chess - show 1-0, 0-1, ½-½
-  if (m.sport === 'Chess') {
-    if (m.scoreA === null || m.scoreB === null || m.status === 'scheduled') {
-      return <div style={{ color: C.faint, fontWeight: 600, fontSize: 13, minWidth: 44, textAlign: "center" }}>vs</div>;
-    }
-    // Chess uses the result directly
-    const label = m.result === 'A' ? '1–0' : m.result === 'B' ? '0–1' : '½–½';
-    return <div style={{ fontSize: 18, fontWeight: 800, color: C.ink, minWidth: 44, textAlign: "center" }}>{label}</div>;
-  }
-
-  // Badminton - show direct score
-  if (m.sport === 'Badminton') {
-    if (m.scoreA === null || m.scoreB === null) {
-      return <div style={{ color: C.faint, fontWeight: 600, fontSize: 13, minWidth: 44, textAlign: "center" }}>vs</div>;
-    }
-    return (
-      <div style={{ display: "flex", alignItems: "center", gap: 3, minWidth: 44, justifyContent: "center" }}>
-        <span style={{ fontSize: 18, fontWeight: 900, color: m.scoreA > m.scoreB ? C.ink : C.muted }}>{m.scoreA}</span>
-        <span style={{ color: C.faint, fontSize: 14 }}>–</span>
-        <span style={{ fontSize: 18, fontWeight: 900, color: m.scoreB > m.scoreA ? C.ink : C.muted }}>{m.scoreB}</span>
-      </div>
-    );
-  }
-
-  // Table Tennis - show match score (e.g., 2-1)
-  if (m.sport === 'Table Tennis') {
-    if (m.status === 'scheduled' || !m.sets || m.sets.length === 0) {
-      return <div style={{ color: C.faint, fontWeight: 600, fontSize: 13, minWidth: 44, textAlign: "center" }}>vs</div>;
-    }
-    
-    let setsWonA = 0;
-    let setsWonB = 0;
-    m.sets.forEach(s => {
-      if (s.sA > s.sB) setsWonA++;
-      else if (s.sB > s.sA) setsWonB++;
-    });
-    
-    if (setsWonA === 0 && setsWonB === 0) {
-      return <div style={{ color: C.faint, fontWeight: 600, fontSize: 13, minWidth: 44, textAlign: "center" }}>vs</div>;
-    }
-    
-    return (
-      <div style={{ display: "flex", flexDirection: "column", alignItems: "center", minWidth: 44 }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
-          <span style={{ fontSize: 18, fontWeight: 900, color: setsWonA > setsWonB ? C.ink : C.muted }}>
-            {setsWonA}
+    // Domino - show direct score
+    if (m.sport === 'Domino') {
+      if (m.scoreA === null || m.scoreB === null) {
+        return <div style={{ color: C.faint, fontWeight: 600, fontSize: 13, minWidth: 44, textAlign: "center" }}>vs</div>;
+      }
+      return (
+        <div style={{ display: "flex", alignItems: "center", gap: 3, minWidth: 44, justifyContent: "center" }}>
+          <span style={{ fontSize: 18, fontWeight: 900, color: m.scoreA > m.scoreB ? C.ink : C.muted }}>
+            {m.scoreA}
           </span>
-          <span style={{ color: C.faint, fontSize: 16 }}>–</span>
-          <span style={{ fontSize: 18, fontWeight: 900, color: setsWonB > setsWonA ? C.ink : C.muted }}>
-            {setsWonB}
-          </span>
-        </div>
-        {m.winnerName && (
-          <div style={{ fontSize: 9, color: C.greenText, fontWeight: 600, marginTop: 2 }}>
-            🏆 {m.winnerName}
-          </div>
-        )}
-      </div>
-    );
-  }
-
-  // Fallback
-  return <div style={{ color: C.faint, fontWeight: 600, fontSize: 13, minWidth: 44, textAlign: "center" }}>vs</div>;
-};
-
-    return (
-      <div style={{ display: "flex", flexDirection: "column", alignItems: "center", minWidth: 44 }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 3 }}>
-          <span style={{ fontSize: 18, fontWeight: 900, color: res === "A" ? C.ink : C.muted }}>{setsA}</span>
           <span style={{ color: C.faint, fontSize: 14 }}>–</span>
-          <span style={{ fontSize: 18, fontWeight: 900, color: res === "B" ? C.ink : C.muted }}>{setsB}</span>
+          <span style={{ fontSize: 18, fontWeight: 900, color: m.scoreB > m.scoreA ? C.ink : C.muted }}>
+            {m.scoreB}
+          </span>
         </div>
-        {m.sets?.length > 0 && (
-          <div style={{ display: "flex", gap: 2 }}>
-            {m.sets.map((s, i) => (
-              <span key={i} style={{ fontSize: 9, color: C.muted }}>
-                {s.sA}-{s.sB}
-              </span>
-            ))}
+      );
+    }
+
+    // Chess - show 1-0, 0-1, ½-½
+    if (m.sport === 'Chess') {
+      if (m.scoreA === null || m.scoreB === null) {
+        return <div style={{ color: C.faint, fontWeight: 600, fontSize: 13, minWidth: 44, textAlign: "center" }}>vs</div>;
+      }
+      const label = res === 'A' ? '1–0' : res === 'B' ? '0–1' : '½–½';
+      return <div style={{ fontSize: 18, fontWeight: 800, color: C.ink, minWidth: 44, textAlign: "center" }}>{label}</div>;
+    }
+
+    // Badminton - show direct score
+    if (m.sport === 'Badminton') {
+      if (m.scoreA === null || m.scoreB === null) {
+        return <div style={{ color: C.faint, fontWeight: 600, fontSize: 13, minWidth: 44, textAlign: "center" }}>vs</div>;
+      }
+      return (
+        <div style={{ display: "flex", alignItems: "center", gap: 3, minWidth: 44, justifyContent: "center" }}>
+          <span style={{ fontSize: 18, fontWeight: 900, color: m.scoreA > m.scoreB ? C.ink : C.muted }}>{m.scoreA}</span>
+          <span style={{ color: C.faint, fontSize: 14 }}>–</span>
+          <span style={{ fontSize: 18, fontWeight: 900, color: m.scoreB > m.scoreA ? C.ink : C.muted }}>{m.scoreB}</span>
+        </div>
+      );
+    }
+
+    // Table Tennis - show match score (e.g., 2-1)
+    if (m.sport === 'Table Tennis') {
+      if (m.status === 'scheduled' || !m.sets || m.sets.length === 0) {
+        return <div style={{ color: C.faint, fontWeight: 600, fontSize: 13, minWidth: 44, textAlign: "center" }}>vs</div>;
+      }
+      
+      let setsWonA = 0;
+      let setsWonB = 0;
+      m.sets.forEach(s => {
+        if (s.sA > s.sB) setsWonA++;
+        else if (s.sB > s.sA) setsWonB++;
+      });
+      
+      if (setsWonA === 0 && setsWonB === 0) {
+        return <div style={{ color: C.faint, fontWeight: 600, fontSize: 13, minWidth: 44, textAlign: "center" }}>vs</div>;
+      }
+      
+      return (
+        <div style={{ display: "flex", flexDirection: "column", alignItems: "center", minWidth: 44 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
+            <span style={{ fontSize: 18, fontWeight: 900, color: setsWonA > setsWonB ? C.ink : C.muted }}>
+              {setsWonA}
+            </span>
+            <span style={{ color: C.faint, fontSize: 16 }}>–</span>
+            <span style={{ fontSize: 18, fontWeight: 900, color: setsWonB > setsWonA ? C.ink : C.muted }}>
+              {setsWonB}
+            </span>
           </div>
-        )}
-      </div>
-    );
+          {m.winnerName && (
+            <div style={{ fontSize: 9, color: C.greenText, fontWeight: 600, marginTop: 2 }}>
+              🏆 {m.winnerName}
+            </div>
+          )}
+        </div>
+      );
+    }
+
+    // Fallback
+    return <div style={{ color: C.faint, fontWeight: 600, fontSize: 13, minWidth: 44, textAlign: "center" }}>vs</div>;
   };
 
+  // ─── Tournament Badge ────────────────────────────────────────────────────
+  const tournamentBadge = m.sport === 'Badminton' && m.tournamentName ? (
+    <span
+      style={{
+        fontSize: 10,
+        fontWeight: 700,
+        color: C.red,
+        background: C.redFaint,
+        border: `1px solid #FECACA`,
+        borderRadius: 99,
+        padding: "1px 10px"
+      }}
+    >
+      {m.tournamentName}
+    </span>
+  ) : null;
+
+  // Category badge for Table Tennis
+  const categoryBadge = m.sport === 'Table Tennis' && m.category ? (
+    <span
+      style={{
+        fontSize: 10,
+        fontWeight: 700,
+        color: C.bluText,
+        background: C.bluBg,
+        border: `1px solid ${C.bluBorder}`,
+        borderRadius: 99,
+        padding: "1px 10px"
+      }}
+    >
+      {m.category}
+    </span>
+  ) : null;
+
+  // ─── Return ────────────────────────────────────────────────────────────────
   return (
     <div
       onClick={canClick ? onClick : undefined}
@@ -1241,10 +1241,9 @@ function MatchCard({ m, lookupParticipant, onClick, official }) {
         borderRadius: 10,
         padding: "12px 14px",
         marginBottom: 8,
-        boxShadow:
-          m.status === "live" ? `0 0 0 3px ${C.redFaint},0 2px 8px rgba(139,0,0,0.08)` : "0 1px 3px rgba(0,0,0,0.06)",
+        boxShadow: m.status === "live" ? `0 0 0 3px ${C.redFaint},0 2px 8px rgba(139,0,0,0.08)` : "0 1px 3px rgba(0,0,0,0.06)",
         cursor: canClick ? "pointer" : "default",
-        position: "relative",
+        position: "relative"
       }}
     >
       {canClick && (
@@ -1259,67 +1258,66 @@ function MatchCard({ m, lookupParticipant, onClick, official }) {
             letterSpacing: 0.5,
             background: C.surface,
             padding: "1px 8px",
-            borderRadius: 99,
+            borderRadius: 99
           }}
         >
           tap to score
         </span>
       )}
 
+      {/* Top row: status, sport, badges */}
       <div style={{ display: "flex", gap: 6, alignItems: "center", marginBottom: 6, flexWrap: "wrap" }}>
-  <Pill status={m.status} />
-  <SportBadge sport={m.sport} />
-  {m.category && (
-    <span
-      style={{
-        fontSize: 10,
-        fontWeight: 700,
-        color: C.bluText,
-        background: C.bluBg,
-        border: `1px solid ${C.bluBorder}`,
-        borderRadius: 99,
-        padding: "1px 10px",
-      }}
-    >
-      {m.category}
-    </span>
-  )}
-  {m.tournamentName && m.sport === 'Badminton' && (
-    <span
-      style={{
-        fontSize: 10,
-        fontWeight: 700,
-        color: C.red,
-        background: C.redFaint,
-        border: `1px solid #FECACA`,
-        borderRadius: 99,
-        padding: "1px 10px",
-      }}
-    >
-      {m.tournamentName}
-    </span>
-  )}
-  {m.round && (
-    <span
-      style={{
-        fontSize: 11,
-        color: C.muted,
-        background: C.surface,
-        border: `1px solid ${C.border}`,
-        borderRadius: 99,
-        padding: "1px 8px",
-      }}
-    >
-      {m.round}
-    </span>
-  )}
-</div>
-      <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-        <NameA p={pA} side="A" />
-        <Score />
-        <NameB p={pB} side="B" />
+        <Pill status={m.status} />
+        <SportBadge sport={m.sport} />
+        {categoryBadge}
+        {tournamentBadge}
+        {m.round && (
+          <span
+            style={{
+              fontSize: 11,
+              color: C.muted,
+              background: C.surface,
+              border: `1px solid ${C.border}`,
+              borderRadius: 99,
+              padding: "1px 8px"
+            }}
+          >
+            {m.round}
+          </span>
+        )}
       </div>
 
+      {/* Middle row: player A, score, player B */}
+      <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+        <Name p={pA} side="A" />
+        <Score />
+        <div style={{ display: "flex", alignItems: "center", gap: 6, flex: 1, minWidth: 0, justifyContent: "flex-end" }}>
+          {res === "B" && <span style={{ fontSize: 14, flexShrink: 0 }}>🏆</span>}
+          {pB && !pB.isTbd ? (
+            <>
+              <div style={{ minWidth: 0, textAlign: "right" }}>
+                <div
+                  style={{
+                    fontWeight: res === "B" ? 900 : 600,
+                    fontSize: 13,
+                    color: res === "B" ? C.ink : C.body,
+                    wordBreak: "break-word",
+                    lineHeight: 1.3
+                  }}
+                >
+                  {pB.name}
+                </div>
+                {pB.club && <div style={{ fontSize: 10, color: C.muted }}>{pB.club}</div>}
+              </div>
+              {pB.flag && <FlagBadge flag={pB.flag} size={14} />}
+            </>
+          ) : (
+            <span style={{ color: C.faint }}>TBD</span>
+          )}
+        </div>
+      </div>
+
+      {/* Bottom row: date, time, venue */}
       <div style={{ fontSize: 11, color: C.muted, marginTop: 4, display: "flex", gap: 8 }}>
         <span>📅 {m.date ? fmtDate(m.date) : "—"}</span>
         <span>🕐 {m.time ? fmtTime(m.time) : "—"}</span>
@@ -1328,6 +1326,7 @@ function MatchCard({ m, lookupParticipant, onClick, official }) {
     </div>
   );
 }
+
 // ─── MAIN APP ──────────────────────────────────────────────────────────────
 export default function App() {
   const [officialAccounts] = useState(ACCOUNTS);
