@@ -1241,9 +1241,8 @@ function MatchCard({ m, lookupParticipant, onClick, official }) {
         </span>
       )}
 
-      {/* ─── BADGES ROW (Status is here) ──────────────────────────────────── */}
+      {/* ─── BADGES ROW ───────────────────────────────────────────────────── */}
       <div style={{ display: "flex", gap: 6, alignItems: "center", marginBottom: 6, flexWrap: "wrap" }}>
-        <Pill status={m.status} />
         <SportBadge sport={m.sport} />
         {categoryBadge}
         {tournamentBadge}
@@ -1268,19 +1267,24 @@ function MatchCard({ m, lookupParticipant, onClick, official }) {
         <TeamRow p={pB} rt={m.rtB} side="B" />
       </div>
 
-      {/* ─── VENUE INFO ───────────────────────────────────────────────────── */}
+      {/* ─── DIVIDER LINE ────────────────────────────────────────────────── */}
+      <div style={{ 
+        borderTop: `1px solid ${C.border}`, 
+        margin: "10px 0 6px 0",
+        width: "100%"
+      }} />
+
+      {/* ─── DATE/TIME/VENUE ─────────────────────────────────────────────── */}
       <div style={{ 
         fontSize: 11, 
         color: C.muted, 
-        marginTop: 6, 
         display: "flex", 
         flexWrap: "wrap", 
-        gap: 4,
-        justifyContent: "center"
+        gap: 8
       }}>
         <span>📅 {m.date ? fmtDate(m.date) : "—"}</span>
-        <span>· 🕐 {m.time ? fmtTime(m.time) : "—"}</span>
-        <span>· 📍 {m.venue || "—"}</span>
+        <span>🕐 {m.time ? fmtTime(m.time) : "—"}</span>
+        <span>📍 {m.venue || "—"}</span>
       </div>
     </div>
   );
