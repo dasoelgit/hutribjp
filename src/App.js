@@ -1050,8 +1050,6 @@ function ProgramCard({ e }) {
 
 // ─── MATCH CARD ─────────────────────────────────────────────────────────────
 function MatchCard({ m, lookupParticipant, onClick, official }) {
-  const meta = SPORT_META[m.sport] ?? { emoji: "🏅", scoringType: "points" };
-
   let pA, pB;
 
   // Handle different sport types
@@ -1068,7 +1066,6 @@ function MatchCard({ m, lookupParticipant, onClick, official }) {
   }
 
   const res = m.result;
-  const [setsA, setsB] = countSets(m.sets, m.sport);
 
   // Permission check
   const canClick = official &&
@@ -1095,7 +1092,6 @@ function MatchCard({ m, lookupParticipant, onClick, official }) {
           >
             {p.name}
           </div>
-          {/* RT text - kept as text */}
           {side === 'A' && m.rtA && <div style={{ fontSize: 10, color: C.muted }}>{m.rtA}</div>}
           {side === 'B' && m.rtB && <div style={{ fontSize: 10, color: C.muted }}>{m.rtB}</div>}
         </div>
@@ -1213,7 +1209,7 @@ function MatchCard({ m, lookupParticipant, onClick, official }) {
         </span>
       )}
 
-      {/* TOP ROW - NO VENUE HERE */}
+      {/* TOP ROW - NO VENUE */}
       <div style={{ display: "flex", gap: 6, alignItems: "center", marginBottom: 6, flexWrap: "wrap" }}>
         <Pill status={m.status} />
         <SportBadge sport={m.sport} />
@@ -1254,7 +1250,6 @@ function MatchCard({ m, lookupParticipant, onClick, official }) {
     </div>
   );
 }
-
 // ─── MAIN APP ──────────────────────────────────────────────────────────────
 export default function App() {
   const [officialAccounts] = useState(ACCOUNTS);
