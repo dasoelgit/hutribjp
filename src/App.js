@@ -272,7 +272,7 @@ async function fetchTableTennisMatches() {
       `${m.group_id}-${m.team1_p1}/${m.team1_p2}-${m.team2_p1}/${m.team2_p2}`
     );
 
-    // ─── FETCH KNOCKOUT STAGE ────────────────────────────────────────────
+    // ─── FETCH KNOCKOUT MATCHES ──────────────────────────────────────────
     const { data: knockoutData, error: knockoutError } = await sportsSupabase
       .from('tt_knockout_matches')
       .select('*')
@@ -283,14 +283,171 @@ async function fetchTableTennisMatches() {
       console.error('TT Knockout fetch error:', knockoutError);
     }
 
-    // ─── COMBINE ──────────────────────────────────────────────────────────
-    const singles = dedupedSingles.map(m => ({ ...m, _category: 'Singles' }));
-    const doubles = dedupedDoubles.map(m => ({ ...m, _category: 'Doubles' }));
-    const knockout = (knockoutData || []).map(m => ({
+    // ─── FETCH SCHEDULE SLOTS FROM TT_STATE ─────────────────────────────
+    const { data: stateData, error: stateError } = await sportsSupabase
+      .from('tt_state')
+      .select('slot_schedule')
+      .order('created_at', { ascending: false })
+      .limit(1);
+
+    // ─── CREATE LOOKUP OF EXISTING MATCH KEYS ───────────────────────────
+    const existingMatchKeys = new Set();
+    const existingMatchIds = new Set();
+    (knockoutData || []).forEach(m => {
+      if (m.match_key) existingMatchKeys.add(m.match_key);
+      if (m.id) existingMatchIds.add(String(m.id));
+    });
+
+    // ─── CREATE PLACEHOLDER MATCHES FROM SCHEDULE SLOTS ────────────────
+    let schedulePlaceholders = [];
+
+    if (!stateError && stateData && stateData.length > 0) {
+      const slotSchedule = stateData[0].slot_schedule;
+      
+      if (slotSchedule) {
+        // ─── SINGLES NEXT STAGE ──────────────────────────────────────────
+        if (slotSchedule.singles?.next) {
+          Object.entries(slotSchedule.singles.next).forEach(([slotId, slotData]) => {
+            // Extract the part after SLOT- and before -1/-2/-3
+            // SLOT-NEXT-X-1 → NEXT-X
+            // SLOT-NEXT-X-2 → NEXT-X
+            const matchKeyBase = slotId.replace('SLOT-', '').replace(/-\d+$/, '');
+            
+            // Check if this slot already has a match
+            // We can't match by exact key because player names are in the key
+            // So we check if any match_key starts with the base
+            const hasMatch = (knockoutData || []).some(m => 
+              m.match_key && m.match_key.startsWith(matchKeyBase + '-')
+            );
+            
+            if (!hasMatch) {
+              schedulePlaceholders.push({
+                id: `slot-${slotId}`,
+                _category: 'Singles',
+                _isKnockout: true,
+                _isPlaceholder: true,
+                _slotId: slotId,
+                _matchKeyBase: matchKeyBase,
+                p1: 'Winner A',
+                p2: 'Winner B',
+                stage: 'next',
+                scheduled_date: slotData.scheduled_date || null,
+                scheduled_time: slotData.scheduled_time || null,
+                table_number: slotData.table_number || null,
+                sets: null,
+                winner: null,
+              });
+            }
+          });
+        }
+        
+        // ─── SINGLES CHAMPIONSHIP ────────────────────────────────────────
+        if (slotSchedule.singles?.championship) {
+          Object.entries(slotSchedule.singles.championship).forEach(([slotId, slotData]) => {
+            // SLOT-CHAMP-1 → CHAMP
+            const matchKeyBase = slotId.replace('SLOT-', '').replace(/-\d+$/, '');
+            
+            const hasMatch = (knockoutData || []).some(m => 
+              m.match_key && m.match_key.startsWith(matchKeyBase + '-')
+            );
+            
+            if (!hasMatch) {
+              schedulePlaceholders.push({
+                id: `slot-${slotId}`,
+                _category: 'Singles',
+                _isKnockout: true,
+                _isPlaceholder: true,
+                _slotId: slotId,
+                _matchKeyBase: matchKeyBase,
+                p1: 'Winner A',
+                p2: 'Winner B',
+                stage: 'championship',
+                scheduled_date: slotData.scheduled_date || null,
+                scheduled_time: slotData.scheduled_time || null,
+                table_number: slotData.table_number || null,
+                sets: null,
+                winner: null,
+              });
+            }
+          });
+        }
+        
+        // ─── DOUBLES SEMIFINALS ──────────────────────────────────────────
+        if (slotSchedule.doubles?.semifinal) {
+          Object.entries(slotSchedule.doubles.semifinal).forEach(([slotId, slotData]) => {
+            // SLOT-SF-1 → SF1
+            const matchKeyBase = slotId.replace('SLOT-', '');
+            
+            const hasMatch = (knockoutData || []).some(m => 
+              m.match_key && m.match_key.startsWith(matchKeyBase + '-')
+            );
+            
+            if (!hasMatch) {
+              schedulePlaceholders.push({
+                id: `slot-${slotId}`,
+                _category: 'Doubles',
+                _isKnockout: true,
+                _isPlaceholder: true,
+                _slotId: slotId,
+                _matchKeyBase: matchKeyBase,
+                p1: 'Winner A',
+                p2: 'Winner B',
+                stage: 'semifinal',
+                scheduled_date: slotData.scheduled_date || null,
+                scheduled_time: slotData.scheduled_time || null,
+                table_number: slotData.table_number || null,
+                sets: null,
+                winner: null,
+              });
+            }
+          });
+        }
+        
+        // ─── DOUBLES FINAL ───────────────────────────────────────────────
+        if (slotSchedule.doubles?.final) {
+          Object.entries(slotSchedule.doubles.final).forEach(([slotId, slotData]) => {
+            // SLOT-FINAL-1 → FINAL
+            const matchKeyBase = slotId.replace('SLOT-', '').replace(/-\d+$/, '');
+            
+            const hasMatch = (knockoutData || []).some(m => 
+              m.match_key && m.match_key.startsWith(matchKeyBase + '-')
+            );
+            
+            if (!hasMatch) {
+              schedulePlaceholders.push({
+                id: `slot-${slotId}`,
+                _category: 'Doubles',
+                _isKnockout: true,
+                _isPlaceholder: true,
+                _slotId: slotId,
+                _matchKeyBase: matchKeyBase,
+                p1: 'Winner A',
+                p2: 'Winner B',
+                stage: 'final',
+                scheduled_date: slotData.scheduled_date || null,
+                scheduled_time: slotData.scheduled_time || null,
+                table_number: slotData.table_number || null,
+                sets: null,
+                winner: null,
+              });
+            }
+          });
+        }
+      }
+    }
+
+    // ─── MAP REAL KNOCKOUT MATCHES ───────────────────────────────────────
+    const existingKnockout = (knockoutData || []).map(m => ({
       ...m,
       _category: m.match_type === 'singles' ? 'Singles' : 'Doubles',
-      _isKnockout: true
+      _isKnockout: true,
+      _isPlaceholder: false,
     }));
+
+    // ─── COMBINE ALL ──────────────────────────────────────────────────────
+    const singles = dedupedSingles.map(m => ({ ...m, _category: 'Singles' }));
+    const doubles = dedupedDoubles.map(m => ({ ...m, _category: 'Doubles' }));
+    const knockout = [...existingKnockout, ...schedulePlaceholders];
 
     const allData = [...singles, ...doubles, ...knockout];
 
@@ -310,20 +467,23 @@ async function fetchTableTennisMatches() {
       let pB = null;
       let roundLabel = '';
       let isKnockout = match._isKnockout || false;
+      let isPlaceholder = match._isPlaceholder || false;
 
       if (isKnockout) {
-        // Knockout: p1/p2 are directly in the row
-        if (match.p1) pA = { name: match.p1, flag: null, club: null };
-        if (match.p2) pB = { name: match.p2, flag: null, club: null };
+        if (isPlaceholder) {
+          pA = { name: match.p1 || 'Winner A', flag: null, club: null };
+          pB = { name: match.p2 || 'Winner B', flag: null, club: null };
+        } else {
+          if (match.p1) pA = { name: match.p1, flag: null, club: null };
+          if (match.p2) pB = { name: match.p2, flag: null, club: null };
+        }
         roundLabel = STAGE_LABELS[match.stage] || match.stage || '';
       } else if (match._category === 'Singles') {
-        // Singles group
         if (match.player1) pA = { name: match.player1, flag: null, club: null };
         if (match.player2) pB = { name: match.player2, flag: null, club: null };
         const group = match.group_id || '';
         roundLabel = `Group ${group}`;
       } else {
-        // Doubles group
         const team1 = [match.team1_p1, match.team1_p2].filter(Boolean);
         const team2 = [match.team2_p1, match.team2_p2].filter(Boolean);
         if (team1.length > 0) pA = { name: team1.join(' / '), flag: null, club: null };
@@ -336,6 +496,8 @@ async function fetchTableTennisMatches() {
       let status = 'scheduled';
       if (match.winner !== null && match.winner !== undefined && match.winner !== '') {
         status = 'finished';
+      } else if (isPlaceholder) {
+        status = 'scheduled';
       }
 
       // Sets & scores
@@ -383,6 +545,7 @@ async function fetchTableTennisMatches() {
         status: status,
         kind: 'match',
         isKnockout: isKnockout,
+        isPlaceholder: isPlaceholder,
         _raw: match
       };
     });
