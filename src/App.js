@@ -1956,7 +1956,7 @@ export default function App() {
                       gap:3
                     }}
                   >
-                    {s==="All" ? "📋 Semua" : `${SPORT_META[s]?.emoji || ''} ${SPORT_DISPLAY[s]||s}`}
+                    {s==="All" ? "✔️" : `${SPORT_META[s]?.emoji || ''} ${SPORT_DISPLAY[s]||s}`}
                   </button>
                 ))}
               </div>
@@ -1979,7 +1979,7 @@ export default function App() {
                       transition:"all 0.15s"
                     }}
                   >
-                    {k==="All" ? "📋 Semua" : k==="match" ? "🏟️ Pertandingan" : "📅 Acara"}
+                    {k==="All" ? "✔️" : k==="match" ? "🏟️ Pertandingan" : "📅 Acara"}
                   </button>
                 ))}
                 
@@ -2059,7 +2059,7 @@ export default function App() {
                     gap:3
                   }}
                 >
-                  {s==="All" ? "📋 Semua" : `${SPORT_META[s]?.emoji || ''} ${SPORT_DISPLAY[s]||s}`}
+                  {s==="All" ? "✔️" : `${SPORT_META[s]?.emoji || ''} ${SPORT_DISPLAY[s]||s}`}
                 </button>
               ))}
             </div>
