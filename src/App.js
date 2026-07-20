@@ -1134,14 +1134,15 @@ function MatchCard({ m, lookupParticipant, onClick, official }) {
 
   // ─── Score Component ──────────────────────────────────────────────────────
   const Score = () => {
+    // Scheduled match - show "vs" in red
     if (m.status === "scheduled") {
-      return <div style={{ color: C.faint, fontWeight: 600, fontSize: 13, minWidth: 32, textAlign: "center", flexShrink: 0, padding: "0 4px" }}>vs</div>;
+      return <div style={{ color: C.red, fontWeight: 700, fontSize: 14, minWidth: 32, textAlign: "center", flexShrink: 0, padding: "0 4px" }}>vs</div>;
     }
 
     // Domino - direct score
     if (m.sport === 'Domino') {
       if (m.scoreA === null || m.scoreB === null) {
-        return <div style={{ color: C.faint, fontWeight: 600, fontSize: 13, minWidth: 32, textAlign: "center", flexShrink: 0, padding: "0 4px" }}>vs</div>;
+        return <div style={{ color: C.red, fontWeight: 700, fontSize: 14, minWidth: 32, textAlign: "center", flexShrink: 0, padding: "0 4px" }}>vs</div>;
       }
       return (
         <div style={{ display: "flex", alignItems: "center", gap: 2, minWidth: 32, justifyContent: "center", flexShrink: 0, padding: "0 4px" }}>
@@ -1155,7 +1156,7 @@ function MatchCard({ m, lookupParticipant, onClick, official }) {
     // Chess - 1-0, 0-1, ½-½
     if (m.sport === 'Chess') {
       if (m.scoreA === null || m.scoreB === null) {
-        return <div style={{ color: C.faint, fontWeight: 600, fontSize: 13, minWidth: 32, textAlign: "center", flexShrink: 0, padding: "0 4px" }}>vs</div>;
+        return <div style={{ color: C.red, fontWeight: 700, fontSize: 14, minWidth: 32, textAlign: "center", flexShrink: 0, padding: "0 4px" }}>vs</div>;
       }
       const label = res === 'A' ? '1–0' : res === 'B' ? '0–1' : '½–½';
       return <div style={{ fontSize: 16, fontWeight: 800, color: C.ink, minWidth: 32, textAlign: "center", flexShrink: 0, padding: "0 4px" }}>{label}</div>;
@@ -1164,7 +1165,7 @@ function MatchCard({ m, lookupParticipant, onClick, official }) {
     // Badminton - direct score
     if (m.sport === 'Badminton') {
       if (m.scoreA === null || m.scoreB === null) {
-        return <div style={{ color: C.faint, fontWeight: 600, fontSize: 13, minWidth: 32, textAlign: "center", flexShrink: 0, padding: "0 4px" }}>vs</div>;
+        return <div style={{ color: C.red, fontWeight: 700, fontSize: 14, minWidth: 32, textAlign: "center", flexShrink: 0, padding: "0 4px" }}>vs</div>;
       }
       return (
         <div style={{ display: "flex", alignItems: "center", gap: 2, minWidth: 32, justifyContent: "center", flexShrink: 0, padding: "0 4px" }}>
@@ -1178,7 +1179,7 @@ function MatchCard({ m, lookupParticipant, onClick, official }) {
     // Table Tennis - match score (sets won)
     if (m.sport === 'Table Tennis') {
       if (m.status === 'scheduled' || !m.sets || m.sets.length === 0) {
-        return <div style={{ color: C.faint, fontWeight: 600, fontSize: 13, minWidth: 32, textAlign: "center", flexShrink: 0, padding: "0 4px" }}>vs</div>;
+        return <div style={{ color: C.red, fontWeight: 700, fontSize: 14, minWidth: 32, textAlign: "center", flexShrink: 0, padding: "0 4px" }}>vs</div>;
       }
       let setsWonA = 0, setsWonB = 0;
       m.sets.forEach(s => {
@@ -1186,7 +1187,7 @@ function MatchCard({ m, lookupParticipant, onClick, official }) {
         else if (s.sB > s.sA) setsWonB++;
       });
       if (setsWonA === 0 && setsWonB === 0) {
-        return <div style={{ color: C.faint, fontWeight: 600, fontSize: 13, minWidth: 32, textAlign: "center", flexShrink: 0, padding: "0 4px" }}>vs</div>;
+        return <div style={{ color: C.red, fontWeight: 700, fontSize: 14, minWidth: 32, textAlign: "center", flexShrink: 0, padding: "0 4px" }}>vs</div>;
       }
       return (
         <div style={{ display: "flex", flexDirection: "column", alignItems: "center", minWidth: 32, flexShrink: 0, padding: "0 4px" }}>
@@ -1204,7 +1205,7 @@ function MatchCard({ m, lookupParticipant, onClick, official }) {
       );
     }
 
-    return <div style={{ color: C.faint, fontWeight: 600, fontSize: 13, minWidth: 32, textAlign: "center", flexShrink: 0, padding: "0 4px" }}>vs</div>;
+    return <div style={{ color: C.red, fontWeight: 700, fontSize: 14, minWidth: 32, textAlign: "center", flexShrink: 0, padding: "0 4px" }}>vs</div>;
   };
 
   // ─── Badges ──────────────────────────────────────────────────────────────
@@ -1242,7 +1243,7 @@ function MatchCard({ m, lookupParticipant, onClick, official }) {
       )}
 
       {/* ─── BADGES ROW ───────────────────────────────────────────────────── */}
-      <div style={{ display: "flex", gap: 6, alignItems: "center", marginBottom: 6, flexWrap: "wrap" }}>
+      <div style={{ display: "flex", gap: 6, alignItems: "center", marginBottom: 12, flexWrap: "wrap" }}>
         <SportBadge sport={m.sport} />
         {categoryBadge}
         {tournamentBadge}
@@ -1258,7 +1259,7 @@ function MatchCard({ m, lookupParticipant, onClick, official }) {
         display: "flex", 
         alignItems: "center", 
         gap: 4, 
-        marginTop: 4,
+        marginTop: 0,
         flexWrap: "wrap",
         justifyContent: "center"
       }}>
@@ -1270,21 +1271,23 @@ function MatchCard({ m, lookupParticipant, onClick, official }) {
       {/* ─── DIVIDER LINE ────────────────────────────────────────────────── */}
       <div style={{ 
         borderTop: `1px solid ${C.border}`, 
-        margin: "10px 0 6px 0",
+        margin: "10px 0 8px 0",
         width: "100%"
       }} />
 
       {/* ─── DATE/TIME/VENUE ─────────────────────────────────────────────── */}
       <div style={{ 
-        fontSize: 11, 
+        fontSize: 13, 
         color: C.muted, 
         display: "flex", 
-        flexWrap: "wrap", 
-        gap: 8
+        flexDirection: "column",
+        gap: 2
       }}>
-        <span>📅 {m.date ? fmtDate(m.date) : "—"}</span>
-        <span>🕐 {m.time ? fmtTime(m.time) : "—"}</span>
-        <span>📍 {m.venue || "—"}</span>
+        <div style={{ display: "flex", gap: 12 }}>
+          <span>📅 {m.date ? fmtDateWithYear(m.date) : "—"}</span>
+          <span>🕐 {m.time ? fmtTime(m.time) : "—"}</span>
+        </div>
+        <div>📍 {m.venue || "—"}</div>
       </div>
     </div>
   );
