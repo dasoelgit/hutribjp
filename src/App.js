@@ -1047,13 +1047,24 @@ function MatchCard({ m, lookupParticipant, onClick, official }) {
 
   // Handle different sport types
   if (m.sport === 'Badminton') {
+    // Badminton: pA/pB are already objects from fetch
     pA = typeof m.pA === 'object' ? m.pA : { name: m.pA || 'TBD', isTbd: true };
     pB = typeof m.pB === 'object' ? m.pB : { name: m.pB || 'TBD', isTbd: true };
   } else if (m.sport === 'Table Tennis') {
-    pA = { name: m.pA || 'TBD', isTbd: true };
-    pB = { name: m.pB || 'TBD', isTbd: true };
+    // Table Tennis: pA/pB are already objects from fetch OR could be strings
+    // Use them directly if they are objects with name, otherwise create
+    if (m.pA && typeof m.pA === 'object' && m.pA.name) {
+      pA = m.pA;
+    } else {
+      pA = { name: m.pA || 'TBD', isTbd: true };
+    }
+    if (m.pB && typeof m.pB === 'object' && m.pB.name) {
+      pB = m.pB;
+    } else {
+      pB = { name: m.pB || 'TBD', isTbd: true };
+    }
   } else {
-    // Chess & Domino
+    // Chess & Domino: use lookupParticipant
     pA = lookupParticipant(m.sport, m.pA);
     pB = lookupParticipant(m.sport, m.pB);
   }
@@ -1087,6 +1098,7 @@ function MatchCard({ m, lookupParticipant, onClick, official }) {
           </div>
           {side === 'A' && m.rtA && <div style={{ fontSize: 10, color: C.muted }}>{m.rtA}</div>}
           {side === 'B' && m.rtB && <div style={{ fontSize: 10, color: C.muted }}>{m.rtB}</div>}
+          {!m.rtA && !m.rtB && p.club && <div style={{ fontSize: 10, color: C.muted }}>{p.club}</div>}
         </div>
         {won && <span style={{ fontSize: 14, flexShrink: 0 }}>🏆</span>}
       </div>
@@ -1202,7 +1214,6 @@ function MatchCard({ m, lookupParticipant, onClick, official }) {
         </span>
       )}
 
-      {/* TOP ROW - NO VENUE */}
       <div style={{ display: "flex", gap: 6, alignItems: "center", marginBottom: 6, flexWrap: "wrap" }}>
         <Pill status={m.status} />
         <SportBadge sport={m.sport} />
@@ -1215,7 +1226,6 @@ function MatchCard({ m, lookupParticipant, onClick, official }) {
         )}
       </div>
 
-      {/* MIDDLE ROW */}
       <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
         <Name p={pA} side="A" />
         <Score />
@@ -1227,6 +1237,7 @@ function MatchCard({ m, lookupParticipant, onClick, official }) {
                 {pB.name}
               </div>
               {m.rtB && <div style={{ fontSize: 10, color: C.muted }}>{m.rtB}</div>}
+              {!m.rtB && pB.club && <div style={{ fontSize: 10, color: C.muted }}>{pB.club}</div>}
             </div>
           ) : (
             <span style={{ color: C.faint }}>TBD</span>
@@ -1234,7 +1245,6 @@ function MatchCard({ m, lookupParticipant, onClick, official }) {
         </div>
       </div>
 
-      {/* BOTTOM ROW - VENUE ONLY ONCE */}
       <div style={{ fontSize: 11, color: C.muted, marginTop: 4, display: "flex", gap: 8 }}>
         <span>📅 {m.date ? fmtDate(m.date) : "—"}</span>
         <span>🕐 {m.time ? fmtTime(m.time) : "—"}</span>
@@ -1243,6 +1253,7 @@ function MatchCard({ m, lookupParticipant, onClick, official }) {
     </div>
   );
 }
+
 // ─── MAIN APP ──────────────────────────────────────────────────────────────
 export default function App() {
   const [officialAccounts] = useState(ACCOUNTS);
