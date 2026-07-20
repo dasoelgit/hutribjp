@@ -110,6 +110,14 @@ const fmtTime = t => {
   }
 };
 
+const fmtDateWithYear = d => { 
+  try { 
+    return new Date(d+"T00:00:00").toLocaleDateString("id-ID",{weekday:"short",day:"numeric",month:"short",year:"numeric"}); 
+  } catch { 
+    return d; 
+  } 
+};
+
 // ─── FETCH BADMINTON MATCHES ─────────────────────────────────────────────
 async function fetchBadmintonMatches() {
   try {
