@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from "react";
 import { createClient } from '@supabase/supabase-js';
 
-const LOGO_URL = "/logo.png";
+const LOGO_URL = "/logo.jpg";
 
 // ─── BADMINTON SUPABASE ──────────────────────────────────────────────────
 const BADMINTON_URL = "https://wrikykevhzwppsqrsxch.supabase.co";
