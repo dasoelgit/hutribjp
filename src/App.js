@@ -1061,7 +1061,7 @@ function ProgramCard({ e }) {
 }
 
 // ─── MATCH CARD ─────────────────────────────────────────────────────────────
-function MatchCard({ m, lookupParticipant, onClick, official }) {
+function MatchCard({ m, lookupParticipant, onClick, official, view }) {
   let pA, pB;
 
   // Handle different sport types
@@ -1085,6 +1085,7 @@ function MatchCard({ m, lookupParticipant, onClick, official }) {
   }
 
   const res = m.result;
+  const isResults = view === "results";
 
   // Permission check
   const canClick = official &&
@@ -1099,72 +1100,94 @@ function MatchCard({ m, lookupParticipant, onClick, official }) {
     return palette[(parseInt(n, 10) || 0) % palette.length];
   };
 
-  const TeamRow = ({ p, rt, side }) => {
+  // ─── Team Row Component ──────────────────────────────────────────────────
+  const TeamRow = ({ p, rt, side, score }) => {
     const won = res === side;
     const isTbd = !p || p.isTbd;
+    const showScore = isResults && score !== undefined && score !== null;
+    
     return (
       <div style={{ 
         display: "flex", 
         alignItems: "center", 
-        gap: 6, 
-        flex: "1 1 auto",
-        minWidth: 0,
-        justifyContent: side === "B" ? "flex-end" : "flex-start"
+        justifyContent: "space-between",
+        width: "100%",
+        gap: 8
       }}>
-        <span
-          style={{
-            fontSize: 15,
-            fontWeight: won ? 800 : 600,
-            color: isTbd ? C.faint : won ? C.red : C.ink,
-            wordBreak: "break-word",
-            overflowWrap: "break-word",
-            lineHeight: 1.3,
-            flexShrink: 1,
-            minWidth: 0
-          }}
-        >
-          {isTbd ? "TBD" : p.name}
-          {won && " 🏆"}
-        </span>
-        {rt && (
+        <div style={{ 
+          display: "flex", 
+          alignItems: "center", 
+          gap: 6,
+          flex: "1 1 auto",
+          minWidth: 0
+        }}>
           <span
             style={{
-              display: "inline-flex",
-              alignItems: "center",
-              gap: 5,
-              flexShrink: 0,
-              fontSize: 11,
-              fontWeight: 600,
-              color: C.body,
-              background: C.surface,
-              border: `1px solid ${C.border}`,
-              borderRadius: 99,
-              padding: "3px 8px",
-              whiteSpace: "nowrap"
+              fontSize: 15,
+              fontWeight: won ? 800 : 600,
+              color: isTbd ? C.faint : won ? C.red : C.ink,
+              wordBreak: "break-word",
+              overflowWrap: "break-word",
+              lineHeight: 1.3,
+              flexShrink: 1,
+              minWidth: 0
             }}
           >
-            <span style={{ width: 9, height: 9, borderRadius: 99, background: rtColor(rt), display: "inline-block", flexShrink: 0 }} />
-            {rt}
+            {isTbd ? "TBD" : p.name}
+          </span>
+          {rt && (
+            <span
+              style={{
+                display: "inline-flex",
+                alignItems: "center",
+                gap: 5,
+                flexShrink: 0,
+                fontSize: 11,
+                fontWeight: 600,
+                color: C.body,
+                background: C.surface,
+                border: `1px solid ${C.border}`,
+                borderRadius: 99,
+                padding: "3px 8px",
+                whiteSpace: "nowrap"
+              }}
+            >
+              <span style={{ width: 9, height: 9, borderRadius: 99, background: rtColor(rt), display: "inline-block", flexShrink: 0 }} />
+              {rt}
+            </span>
+          )}
+          {won && <span style={{ fontSize: 14, flexShrink: 0 }}>🏆</span>}
+        </div>
+        {showScore && (
+          <span style={{
+            fontSize: 18,
+            fontWeight: 800,
+            color: C.ink,
+            flexShrink: 0,
+            minWidth: 32,
+            textAlign: "right"
+          }}>
+            {score}
           </span>
         )}
       </div>
     );
   };
 
-  // ─── Score Component ──────────────────────────────────────────────────────
+  // ─── Score Component (only for Schedule view) ────────────────────────────
   const Score = () => {
-    // Scheduled match - show "vs" in red
+    if (isResults) return null;
+    
     if (m.status === "scheduled") {
-      return <div style={{ color: C.red, fontWeight: 700, fontSize: 14, minWidth: 32, textAlign: "center", flexShrink: 0, padding: "0 4px" }}>vs</div>;
+      return <div style={{ color: C.red, fontWeight: 700, fontSize: 14, width: 48, textAlign: "center", flexShrink: 0 }}>vs</div>;
     }
 
-    // Domino - direct score
     if (m.sport === 'Domino') {
       if (m.scoreA === null || m.scoreB === null) {
-        return <div style={{ color: C.red, fontWeight: 700, fontSize: 14, minWidth: 32, textAlign: "center", flexShrink: 0, padding: "0 4px" }}>vs</div>;
+        return <div style={{ color: C.red, fontWeight: 700, fontSize: 14, width: 48, textAlign: "center", flexShrink: 0 }}>vs</div>;
       }
       return (
-        <div style={{ display: "flex", alignItems: "center", gap: 2, minWidth: 32, justifyContent: "center", flexShrink: 0, padding: "0 4px" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 2, width: 48, justifyContent: "center", flexShrink: 0 }}>
           <span style={{ fontSize: 16, fontWeight: 900, color: m.scoreA > m.scoreB ? C.ink : C.muted }}>{m.scoreA}</span>
           <span style={{ color: C.faint, fontSize: 13 }}>–</span>
           <span style={{ fontSize: 16, fontWeight: 900, color: m.scoreB > m.scoreA ? C.ink : C.muted }}>{m.scoreB}</span>
@@ -1172,22 +1195,20 @@ function MatchCard({ m, lookupParticipant, onClick, official }) {
       );
     }
 
-    // Chess - 1-0, 0-1, ½-½
     if (m.sport === 'Chess') {
       if (m.scoreA === null || m.scoreB === null) {
-        return <div style={{ color: C.red, fontWeight: 700, fontSize: 14, minWidth: 32, textAlign: "center", flexShrink: 0, padding: "0 4px" }}>vs</div>;
+        return <div style={{ color: C.red, fontWeight: 700, fontSize: 14, width: 48, textAlign: "center", flexShrink: 0 }}>vs</div>;
       }
       const label = res === 'A' ? '1–0' : res === 'B' ? '0–1' : '½–½';
-      return <div style={{ fontSize: 16, fontWeight: 800, color: C.ink, minWidth: 32, textAlign: "center", flexShrink: 0, padding: "0 4px" }}>{label}</div>;
+      return <div style={{ fontSize: 16, fontWeight: 800, color: C.ink, width: 48, textAlign: "center", flexShrink: 0 }}>{label}</div>;
     }
 
-    // Badminton - direct score
     if (m.sport === 'Badminton') {
       if (m.scoreA === null || m.scoreB === null) {
-        return <div style={{ color: C.red, fontWeight: 700, fontSize: 14, minWidth: 32, textAlign: "center", flexShrink: 0, padding: "0 4px" }}>vs</div>;
+        return <div style={{ color: C.red, fontWeight: 700, fontSize: 14, width: 48, textAlign: "center", flexShrink: 0 }}>vs</div>;
       }
       return (
-        <div style={{ display: "flex", alignItems: "center", gap: 2, minWidth: 32, justifyContent: "center", flexShrink: 0, padding: "0 4px" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 2, width: 48, justifyContent: "center", flexShrink: 0 }}>
           <span style={{ fontSize: 16, fontWeight: 900, color: m.scoreA > m.scoreB ? C.ink : C.muted }}>{m.scoreA}</span>
           <span style={{ color: C.faint, fontSize: 13 }}>–</span>
           <span style={{ fontSize: 16, fontWeight: 900, color: m.scoreB > m.scoreA ? C.ink : C.muted }}>{m.scoreB}</span>
@@ -1195,10 +1216,9 @@ function MatchCard({ m, lookupParticipant, onClick, official }) {
       );
     }
 
-    // Table Tennis - match score (sets won)
     if (m.sport === 'Table Tennis') {
       if (m.status === 'scheduled' || !m.sets || m.sets.length === 0) {
-        return <div style={{ color: C.red, fontWeight: 700, fontSize: 14, minWidth: 32, textAlign: "center", flexShrink: 0, padding: "0 4px" }}>vs</div>;
+        return <div style={{ color: C.red, fontWeight: 700, fontSize: 14, width: 48, textAlign: "center", flexShrink: 0 }}>vs</div>;
       }
       let setsWonA = 0, setsWonB = 0;
       m.sets.forEach(s => {
@@ -1206,10 +1226,10 @@ function MatchCard({ m, lookupParticipant, onClick, official }) {
         else if (s.sB > s.sA) setsWonB++;
       });
       if (setsWonA === 0 && setsWonB === 0) {
-        return <div style={{ color: C.red, fontWeight: 700, fontSize: 14, minWidth: 32, textAlign: "center", flexShrink: 0, padding: "0 4px" }}>vs</div>;
+        return <div style={{ color: C.red, fontWeight: 700, fontSize: 14, width: 48, textAlign: "center", flexShrink: 0 }}>vs</div>;
       }
       return (
-        <div style={{ display: "flex", flexDirection: "column", alignItems: "center", minWidth: 32, flexShrink: 0, padding: "0 4px" }}>
+        <div style={{ display: "flex", flexDirection: "column", alignItems: "center", width: 48, flexShrink: 0 }}>
           <div style={{ display: "flex", alignItems: "center", gap: 2 }}>
             <span style={{ fontSize: 16, fontWeight: 900, color: setsWonA > setsWonB ? C.ink : C.muted }}>{setsWonA}</span>
             <span style={{ color: C.faint, fontSize: 13 }}>–</span>
@@ -1224,7 +1244,7 @@ function MatchCard({ m, lookupParticipant, onClick, official }) {
       );
     }
 
-    return <div style={{ color: C.red, fontWeight: 700, fontSize: 14, minWidth: 32, textAlign: "center", flexShrink: 0, padding: "0 4px" }}>vs</div>;
+    return <div style={{ color: C.red, fontWeight: 700, fontSize: 14, width: 48, textAlign: "center", flexShrink: 0 }}>vs</div>;
   };
 
   // ─── Badges ──────────────────────────────────────────────────────────────
@@ -1273,19 +1293,29 @@ function MatchCard({ m, lookupParticipant, onClick, official }) {
         )}
       </div>
 
-      {/* ─── HORIZONTAL LAYOUT WITH WRAP ────────────────────────────────── */}
-      <div style={{ 
-        display: "flex", 
-        alignItems: "center", 
-        gap: 4, 
-        marginTop: 0,
-        flexWrap: "wrap",
-        justifyContent: "center"
-      }}>
-        <TeamRow p={pA} rt={m.rtA} side="A" />
-        <Score />
-        <TeamRow p={pB} rt={m.rtB} side="B" />
-      </div>
+      {/* ─── BODY ──────────────────────────────────────────────────────────── */}
+      {isResults ? (
+        // ─── RESULTS LAYOUT ────────────────────────────────────────────────
+        <>
+          <TeamRow p={pA} rt={m.rtA} side="A" score={m.scoreA} />
+          <div style={{ borderTop: `1px solid ${C.border}`, margin: "6px 0" }} />
+          <TeamRow p={pB} rt={m.rtB} side="B" score={m.scoreB} />
+        </>
+      ) : (
+        // ─── SCHEDULE LAYOUT ──────────────────────────────────────────────
+        <div style={{ 
+          display: "flex", 
+          alignItems: "center", 
+          gap: 4, 
+          marginTop: 0,
+          flexWrap: "wrap",
+          justifyContent: "center"
+        }}>
+          <TeamRow p={pA} rt={m.rtA} side="A" />
+          <Score />
+          <TeamRow p={pB} rt={m.rtB} side="B" />
+        </div>
+      )}
 
       {/* ─── DIVIDER LINE ────────────────────────────────────────────────── */}
       <div style={{ 
@@ -1573,7 +1603,7 @@ useEffect(() => {
               </div>
               <div style={{flex:1}}>
                 {item.kind==="match"
-  ? <MatchCard m={item} lookupParticipant={lookupParticipant} onClick={() => handleMatchClick(item)} official={official}/>
+  ? <MatchCard m={item} lookupParticipant={lookupParticipant} onClick={() => handleMatchClick(item)} official={official} view="schedule" />
   : <ProgramCard e={item}/>
 }
               </div>
@@ -1811,7 +1841,7 @@ useEffect(() => {
         return matchDate>=friday&&matchDate<=sunday;
       })
       .map((m,i)=>(
-        <MatchCard key={i} m={m} lookupParticipant={lookupParticipant} official={official} />
+        <MatchCard key={i} m={m} lookupParticipant={lookupParticipant} official={official} view="results" />
       ))
     }
     {resultMatches.filter(m=>filterSport==="All"||m.sport===filterSport).filter(m=>{
