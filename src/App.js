@@ -1056,11 +1056,11 @@ function MatchCard({ m, lookupParticipant, onClick, official }) {
 
   // Handle different sport types
   if (m.sport === 'Badminton') {
-    pA = typeof m.pA === 'object' ? m.pA : { name: m.pA || 'TBD', flag: null, club: null, isTbd: true };
-    pB = typeof m.pB === 'object' ? m.pB : { name: m.pB || 'TBD', flag: null, club: null, isTbd: true };
+    pA = typeof m.pA === 'object' ? m.pA : { name: m.pA || 'TBD', isTbd: true };
+    pB = typeof m.pB === 'object' ? m.pB : { name: m.pB || 'TBD', isTbd: true };
   } else if (m.sport === 'Table Tennis') {
-    pA = { name: m.pA || 'TBD', flag: null, club: null, isTbd: true };
-    pB = { name: m.pB || 'TBD', flag: null, club: null, isTbd: true };
+    pA = { name: m.pA || 'TBD', isTbd: true };
+    pB = { name: m.pB || 'TBD', isTbd: true };
   } else {
     // Chess & Domino
     pA = lookupParticipant(m.sport, m.pA);
@@ -1070,14 +1070,12 @@ function MatchCard({ m, lookupParticipant, onClick, official }) {
   const res = m.result;
   const [setsA, setsB] = countSets(m.sets, m.sport);
 
-  // Only allow clicking if user is logged in and has permission
+  // Permission check
   const canClick = official &&
     (official.role === "admin" ||
      (official.role === "chess_admin" && m.sport === "Chess") ||
      (official.role === "domino_admin" && m.sport === "Domino")) &&
     m.status !== "finished";
-
-  const hasRT = m.rtA || m.rtB;
 
   // ─── Name Component ──────────────────────────────────────────────────────
   const Name = ({ p, side }) => {
@@ -1085,8 +1083,6 @@ function MatchCard({ m, lookupParticipant, onClick, official }) {
     const won = res === side;
     return (
       <div style={{ display: "flex", alignItems: "center", gap: 6, flex: 1, minWidth: 0 }}>
-        {hasRT && side === 'A' && m.rtA && <FlagBadge flag={rtFlag(m.rtA)} size={14} />}
-        {hasRT && side === 'B' && m.rtB && <FlagBadge flag={rtFlag(m.rtB)} size={14} />}
         <div style={{ minWidth: 0, flex: 1 }}>
           <div
             style={{
@@ -1099,9 +1095,9 @@ function MatchCard({ m, lookupParticipant, onClick, official }) {
           >
             {p.name}
           </div>
-          {hasRT && side === 'A' && m.rtA && <div style={{ fontSize: 10, color: C.muted }}>{m.rtA}</div>}
-          {hasRT && side === 'B' && m.rtB && <div style={{ fontSize: 10, color: C.muted }}>{m.rtB}</div>}
-          {!hasRT && p.club && <div style={{ fontSize: 10, color: C.muted }}>{p.club}</div>}
+          {/* RT text - kept as text */}
+          {side === 'A' && m.rtA && <div style={{ fontSize: 10, color: C.muted }}>{m.rtA}</div>}
+          {side === 'B' && m.rtB && <div style={{ fontSize: 10, color: C.muted }}>{m.rtB}</div>}
         </div>
         {won && <span style={{ fontSize: 14, flexShrink: 0 }}>🏆</span>}
       </div>
@@ -1110,30 +1106,25 @@ function MatchCard({ m, lookupParticipant, onClick, official }) {
 
   // ─── Score Component ──────────────────────────────────────────────────────
   const Score = () => {
-    // Scheduled matches
     if (m.status === "scheduled") {
       return <div style={{ color: C.faint, fontWeight: 600, fontSize: 13, minWidth: 44, textAlign: "center" }}>vs</div>;
     }
 
-    // Domino - show direct score
+    // Domino - direct score
     if (m.sport === 'Domino') {
       if (m.scoreA === null || m.scoreB === null) {
         return <div style={{ color: C.faint, fontWeight: 600, fontSize: 13, minWidth: 44, textAlign: "center" }}>vs</div>;
       }
       return (
         <div style={{ display: "flex", alignItems: "center", gap: 3, minWidth: 44, justifyContent: "center" }}>
-          <span style={{ fontSize: 18, fontWeight: 900, color: m.scoreA > m.scoreB ? C.ink : C.muted }}>
-            {m.scoreA}
-          </span>
+          <span style={{ fontSize: 18, fontWeight: 900, color: m.scoreA > m.scoreB ? C.ink : C.muted }}>{m.scoreA}</span>
           <span style={{ color: C.faint, fontSize: 14 }}>–</span>
-          <span style={{ fontSize: 18, fontWeight: 900, color: m.scoreB > m.scoreA ? C.ink : C.muted }}>
-            {m.scoreB}
-          </span>
+          <span style={{ fontSize: 18, fontWeight: 900, color: m.scoreB > m.scoreA ? C.ink : C.muted }}>{m.scoreB}</span>
         </div>
       );
     }
 
-    // Chess - show 1-0, 0-1, ½-½
+    // Chess - 1-0, 0-1, ½-½
     if (m.sport === 'Chess') {
       if (m.scoreA === null || m.scoreB === null) {
         return <div style={{ color: C.faint, fontWeight: 600, fontSize: 13, minWidth: 44, textAlign: "center" }}>vs</div>;
@@ -1142,7 +1133,7 @@ function MatchCard({ m, lookupParticipant, onClick, official }) {
       return <div style={{ fontSize: 18, fontWeight: 800, color: C.ink, minWidth: 44, textAlign: "center" }}>{label}</div>;
     }
 
-    // Badminton - show direct score
+    // Badminton - direct score
     if (m.sport === 'Badminton') {
       if (m.scoreA === null || m.scoreB === null) {
         return <div style={{ color: C.faint, fontWeight: 600, fontSize: 13, minWidth: 44, textAlign: "center" }}>vs</div>;
@@ -1156,33 +1147,25 @@ function MatchCard({ m, lookupParticipant, onClick, official }) {
       );
     }
 
-    // Table Tennis - show match score (e.g., 2-1)
+    // Table Tennis - match score (sets won)
     if (m.sport === 'Table Tennis') {
       if (m.status === 'scheduled' || !m.sets || m.sets.length === 0) {
         return <div style={{ color: C.faint, fontWeight: 600, fontSize: 13, minWidth: 44, textAlign: "center" }}>vs</div>;
       }
-      
-      let setsWonA = 0;
-      let setsWonB = 0;
+      let setsWonA = 0, setsWonB = 0;
       m.sets.forEach(s => {
         if (s.sA > s.sB) setsWonA++;
         else if (s.sB > s.sA) setsWonB++;
       });
-      
       if (setsWonA === 0 && setsWonB === 0) {
         return <div style={{ color: C.faint, fontWeight: 600, fontSize: 13, minWidth: 44, textAlign: "center" }}>vs</div>;
       }
-      
       return (
         <div style={{ display: "flex", flexDirection: "column", alignItems: "center", minWidth: 44 }}>
           <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
-            <span style={{ fontSize: 18, fontWeight: 900, color: setsWonA > setsWonB ? C.ink : C.muted }}>
-              {setsWonA}
-            </span>
+            <span style={{ fontSize: 18, fontWeight: 900, color: setsWonA > setsWonB ? C.ink : C.muted }}>{setsWonA}</span>
             <span style={{ color: C.faint, fontSize: 16 }}>–</span>
-            <span style={{ fontSize: 18, fontWeight: 900, color: setsWonB > setsWonA ? C.ink : C.muted }}>
-              {setsWonB}
-            </span>
+            <span style={{ fontSize: 18, fontWeight: 900, color: setsWonB > setsWonA ? C.ink : C.muted }}>{setsWonB}</span>
           </div>
           {m.winnerName && (
             <div style={{ fontSize: 9, color: C.greenText, fontWeight: 600, marginTop: 2 }}>
@@ -1193,45 +1176,23 @@ function MatchCard({ m, lookupParticipant, onClick, official }) {
       );
     }
 
-    // Fallback
     return <div style={{ color: C.faint, fontWeight: 600, fontSize: 13, minWidth: 44, textAlign: "center" }}>vs</div>;
   };
 
-  // ─── Tournament Badge ────────────────────────────────────────────────────
+  // ─── Badges ──────────────────────────────────────────────────────────────
   const tournamentBadge = m.sport === 'Badminton' && m.tournamentName ? (
-    <span
-      style={{
-        fontSize: 10,
-        fontWeight: 700,
-        color: C.red,
-        background: C.redFaint,
-        border: `1px solid #FECACA`,
-        borderRadius: 99,
-        padding: "1px 10px"
-      }}
-    >
+    <span style={{ fontSize: 10, fontWeight: 700, color: C.red, background: C.redFaint, border: `1px solid #FECACA`, borderRadius: 99, padding: "1px 10px" }}>
       {m.tournamentName}
     </span>
   ) : null;
 
-  // Category badge for Table Tennis
   const categoryBadge = m.sport === 'Table Tennis' && m.category ? (
-    <span
-      style={{
-        fontSize: 10,
-        fontWeight: 700,
-        color: C.bluText,
-        background: C.bluBg,
-        border: `1px solid ${C.bluBorder}`,
-        borderRadius: 99,
-        padding: "1px 10px"
-      }}
-    >
+    <span style={{ fontSize: 10, fontWeight: 700, color: C.bluText, background: C.bluBg, border: `1px solid ${C.bluBorder}`, borderRadius: 99, padding: "1px 10px" }}>
       {m.category}
     </span>
   ) : null;
 
-  // ─── Return ────────────────────────────────────────────────────────────────
+  // ─── Return ──────────────────────────────────────────────────────────────
   return (
     <div
       onClick={canClick ? onClick : undefined}
@@ -1247,77 +1208,44 @@ function MatchCard({ m, lookupParticipant, onClick, official }) {
       }}
     >
       {canClick && (
-        <span
-          style={{
-            position: "absolute",
-            top: 6,
-            right: 10,
-            fontSize: 9,
-            color: C.faint,
-            fontWeight: 600,
-            letterSpacing: 0.5,
-            background: C.surface,
-            padding: "1px 8px",
-            borderRadius: 99
-          }}
-        >
+        <span style={{ position: "absolute", top: 6, right: 10, fontSize: 9, color: C.faint, fontWeight: 600, letterSpacing: 0.5, background: C.surface, padding: "1px 8px", borderRadius: 99 }}>
           tap to score
         </span>
       )}
 
-      {/* Top row: status, sport, badges */}
+      {/* TOP ROW - NO VENUE HERE */}
       <div style={{ display: "flex", gap: 6, alignItems: "center", marginBottom: 6, flexWrap: "wrap" }}>
         <Pill status={m.status} />
         <SportBadge sport={m.sport} />
         {categoryBadge}
         {tournamentBadge}
         {m.round && (
-          <span
-            style={{
-              fontSize: 11,
-              color: C.muted,
-              background: C.surface,
-              border: `1px solid ${C.border}`,
-              borderRadius: 99,
-              padding: "1px 8px"
-            }}
-          >
+          <span style={{ fontSize: 11, color: C.muted, background: C.surface, border: `1px solid ${C.border}`, borderRadius: 99, padding: "1px 8px" }}>
             {m.round}
           </span>
         )}
       </div>
 
-      {/* Middle row: player A, score, player B */}
+      {/* MIDDLE ROW */}
       <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
         <Name p={pA} side="A" />
         <Score />
         <div style={{ display: "flex", alignItems: "center", gap: 6, flex: 1, minWidth: 0, justifyContent: "flex-end" }}>
           {res === "B" && <span style={{ fontSize: 14, flexShrink: 0 }}>🏆</span>}
           {pB && !pB.isTbd ? (
-            <>
-              <div style={{ minWidth: 0, textAlign: "right" }}>
-                <div
-                  style={{
-                    fontWeight: res === "B" ? 900 : 600,
-                    fontSize: 13,
-                    color: res === "B" ? C.ink : C.body,
-                    wordBreak: "break-word",
-                    lineHeight: 1.3
-                  }}
-                >
-                  {pB.name}
-                </div>
-                {pB.club && <div style={{ fontSize: 10, color: C.muted }}>{pB.club}</div>}
+            <div style={{ minWidth: 0, textAlign: "right" }}>
+              <div style={{ fontWeight: res === "B" ? 900 : 600, fontSize: 13, color: res === "B" ? C.ink : C.body, wordBreak: "break-word", lineHeight: 1.3 }}>
+                {pB.name}
               </div>
-              {pB.flag && <FlagBadge flag={pB.flag} size={14} />}
-            </>
+              {m.rtB && <div style={{ fontSize: 10, color: C.muted }}>{m.rtB}</div>}
+            </div>
           ) : (
             <span style={{ color: C.faint }}>TBD</span>
           )}
         </div>
       </div>
 
-      {/* Bottom row: date, time, venue */}
+      {/* BOTTOM ROW - VENUE ONLY ONCE */}
       <div style={{ fontSize: 11, color: C.muted, marginTop: 4, display: "flex", gap: 8 }}>
         <span>📅 {m.date ? fmtDate(m.date) : "—"}</span>
         <span>🕐 {m.time ? fmtTime(m.time) : "—"}</span>
