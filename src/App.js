@@ -354,7 +354,7 @@ async function fetchTableTennisMatches() {
       }
 
       // Venue
-      const venue = match.table_number || match.venue || VENUES["Table Tennis"];
+      const venue = VENUES["Table Tennis"];
 
       return {
         id: match.id,
