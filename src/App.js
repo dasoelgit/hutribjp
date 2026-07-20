@@ -1568,7 +1568,7 @@ useEffect(() => {
         <div style={{display:"flex",flexDirection:"column",gap:8}}>
           {grouped[date].map((item,idx)=>(
             <div key={idx} style={{display:"flex"}}>
-              <div style={{width:48,paddingTop:16,paddingRight:10,textAlign:"right",flexShrink:0}}>
+              <div style={{width:40,paddingTop:16,paddingRight:6,textAlign:"right",flexShrink:0}}>
                 <span style={{fontSize:12,fontWeight:700,color:C.muted}}>{item._time ? fmtTime(item._time) : "—"}</span>
               </div>
               <div style={{flex:1}}>
