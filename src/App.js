@@ -49,7 +49,7 @@ const SPORT_META = {
   "Badminton":            { emoji:"🏸", scoringType:"sets",    matchType:"doubles", bestOf:3,  pointsPerSet:21 },
   "Table Tennis":         { emoji:"🏓", scoringType:"sets",    matchType:"doubles", bestOf:5,  pointsPerSet:11 },
   "Chess":                { emoji:"♟️", scoringType:"chess",   matchType:"singles", bestOf:1 },
-  "Gaple":               { emoji:"🀱", scoringType:"points",  matchType:"doubles", bestOf:1 },
+  "Domino":               { emoji:"🀱", scoringType:"points",  matchType:"doubles", bestOf:1 },
 };
 const SPORTS = Object.keys(SPORT_META);
 
