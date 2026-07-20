@@ -1626,66 +1626,87 @@ useEffect(() => {
         )}
 
         {view==="results"&&(
-          <>
-            <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",flexWrap:"wrap",gap:10,marginBottom:16}}>
-              <div>
-                <h2 style={{fontSize:20,fontWeight:800,color:C.ink,margin:0}}>🏆 Hasil Pertandingan</h2>
-              </div>
-              <button onClick={()=>setShowAllResults(!showAllResults)} style={{...ghostBtn(showAllResults),fontSize:13,minHeight:44,padding:"10px 20px"}}>
-                {showAllResults?"Tampilkan Jadwal Minggu Ini":"Tampilkan Semua Hasil"}
-              </button>
-            </div>
+  <>
+    <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",flexWrap:"wrap",gap:10,marginBottom:16}}>
+      <div>
+        <h2 style={{fontSize:20,fontWeight:800,color:C.ink,margin:0}}>🏆 Hasil Pertandingan</h2>
+      </div>
+      <button onClick={()=>setShowAllResults(!showAllResults)} style={{...ghostBtn(showAllResults),fontSize:13,minHeight:44,padding:"10px 20px"}}>
+        {showAllResults?"Tampilkan Jadwal Minggu Ini":"Tampilkan Semua Hasil"}
+      </button>
+    </div>
 
-            <div style={{display:"flex",flexWrap:"wrap",gap:10,marginBottom:18}}>
-              <select style={{...inp,width:"auto",padding:"8px 12px",fontSize:13}} value={filterSport} onChange={e=>setFilterSport(e.target.value)}>
-                <option value="All">Semua</option>
-                {SPORTS.map(s=><option key={s} value={s}>{SPORT_DISPLAY[s]}</option>)}
-              </select>
-            </div>
+    <div style={{display:"flex",flexWrap:"wrap",gap:10,marginBottom:18}}>
+      <select style={{...inp,width:"auto",padding:"8px 12px",fontSize:13}} value={filterSport} onChange={e=>setFilterSport(e.target.value)}>
+        <option value="All">Semua</option>
+        {SPORTS.map(s=><option key={s} value={s}>{SPORT_DISPLAY[s]}</option>)}
+      </select>
+    </div>
 
-            {resultMatches
-              .filter(m=>filterSport==="All"||m.sport===filterSport)
-              .filter(m=>{
-                if(showAllResults) return true;
-                // Filter to only Friday-Sunday of current week
-                const today=new Date();
-                const day=today.getDay(); // 0=Sunday, 1=Monday, ...
-                const diffToFriday=(5-day+7)%7;
-                const friday=new Date(today);
-                friday.setDate(today.getDate()+diffToFriday);
-                friday.setHours(0,0,0,0);
-                const sunday=new Date(friday);
-                sunday.setDate(friday.getDate()+2);
-                sunday.setHours(23,59,59,999);
-                const matchDate=new Date(m.date+"T00:00:00");
-                return matchDate>=friday&&matchDate<=sunday;
-              })
-              .map((m,i)=>(
-                <MatchCard key={i} m={m} lookupParticipant={lookupParticipant} official={official} />
-              ))
-            }
-            {resultMatches.filter(m=>filterSport==="All"||m.sport===filterSport).filter(m=>{
-              if(showAllResults) return true;
-              const today=new Date();
-              const day=today.getDay();
-              const diffToFriday=(5-day+7)%7;
-              const friday=new Date(today);
-              friday.setDate(today.getDate()+diffToFriday);
-              friday.setHours(0,0,0,0);
-              const sunday=new Date(friday);
-              sunday.setDate(friday.getDate()+2);
-              sunday.setHours(23,59,59,999);
-              const matchDate=new Date(m.date+"T00:00:00");
-              return matchDate>=friday&&matchDate<=sunday;
-            }).length===0 && (
-              <div style={{textAlign:"center",color:C.faint,padding:40,fontSize:14}}>
-                <div style={{fontSize:32,marginBottom:10}}>📊</div>
-                <div style={{fontWeight:700,color:C.muted}}>No results for this period</div>
-                <div style={{fontSize:12}}>Try adjusting filters or viewing all results.</div>
-              </div>
-            )}
-          </>
-        )}
+    {resultMatches
+      .filter(m=>filterSport==="All"||m.sport===filterSport)
+      .filter(m=>{
+        if(showAllResults) return true;
+        // Filter to Friday-Sunday of the current week (past or present)
+        const today=new Date();
+        const day=today.getDay(); // 0=Sunday, 1=Monday, ...
+        
+        // Find the most recent Friday (or today if it's Friday)
+        let friday=new Date(today);
+        if (day === 5) {
+          // Today is Friday - use today
+          friday.setHours(0,0,0,0);
+        } else if (day < 5) {
+          // Monday-Thursday: go back to previous Friday
+          friday.setDate(today.getDate() - (day + 2));
+          friday.setHours(0,0,0,0);
+        } else {
+          // Saturday-Sunday: go back to previous Friday
+          friday.setDate(today.getDate() - (day - 5));
+          friday.setHours(0,0,0,0);
+        }
+        
+        const sunday=new Date(friday);
+        sunday.setDate(friday.getDate()+2);
+        sunday.setHours(23,59,59,999);
+        const matchDate=new Date(m.date+"T00:00:00");
+        return matchDate>=friday&&matchDate<=sunday;
+      })
+      .map((m,i)=>(
+        <MatchCard key={i} m={m} lookupParticipant={lookupParticipant} official={official} />
+      ))
+    }
+    {resultMatches.filter(m=>filterSport==="All"||m.sport===filterSport).filter(m=>{
+      if(showAllResults) return true;
+      const today=new Date();
+      const day=today.getDay();
+      
+      // Find the most recent Friday (or today if it's Friday)
+      let friday=new Date(today);
+      if (day === 5) {
+        friday.setHours(0,0,0,0);
+      } else if (day < 5) {
+        friday.setDate(today.getDate() - (day + 2));
+        friday.setHours(0,0,0,0);
+      } else {
+        friday.setDate(today.getDate() - (day - 5));
+        friday.setHours(0,0,0,0);
+      }
+      
+      const sunday=new Date(friday);
+      sunday.setDate(friday.getDate()+2);
+      sunday.setHours(23,59,59,999);
+      const matchDate=new Date(m.date+"T00:00:00");
+      return matchDate>=friday&&matchDate<=sunday;
+    }).length===0 && (
+      <div style={{textAlign:"center",color:C.faint,padding:40,fontSize:14}}>
+        <div style={{fontSize:32,marginBottom:10}}>📊</div>
+        <div style={{fontWeight:700,color:C.muted}}>No results for this period</div>
+        <div style={{fontSize:12}}>Try adjusting filters or viewing all results.</div>
+      </div>
+    )}
+  </>
+)}
 
         {view==="admin"&&official&&(
           <div style={{marginTop:12}}>
