@@ -183,8 +183,8 @@ async function fetchBadmintonMatches() {
         const tm = match.tournament_matches[0];
         if (tm) {
           if (tm.tournaments) {
-            tournamentName = tm.tournaments.name || '';
-          }
+              tournamentName = (tm.tournaments.name || '').replace(' Tournament', '');
+              }
           const { stage, round } = tm;
           if (stage === 'group' && round === 1) roundLabel = 'Group Stage';
           else if (stage === 'knockout' && round === 1) roundLabel = 'Final';
@@ -566,9 +566,9 @@ const SportBadge = ({sport}) => {
     display:"inline-flex",
     alignItems:"center",
     gap:4,
-    padding:"3px 10px",
+    padding:"4px 11px",
     borderRadius:99,
-    fontSize:12,
+    fontSize:13,
     fontWeight:700,
     background:bg,
     color:color,
@@ -1296,7 +1296,7 @@ function MatchCard({ m, lookupParticipant, onClick, official }) {
 
       {/* ─── DATE/TIME/VENUE ─────────────────────────────────────────────── */}
       <div style={{ 
-        fontSize: 13, 
+        fontSize: 12, 
         color: C.muted, 
         display: "flex", 
         flexDirection: "column",
