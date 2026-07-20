@@ -92,7 +92,7 @@ const seedProgram = () => [];
 // ─── HELPERS ────────────────────────────────────────────────────────────────
 const fmtDate = d => { 
   try { 
-    return new Date(d+"T00:00:00").toLocaleDateString("id-ID",{weekday:"short",day:"numeric",month:"short"}); 
+    return new Date(d+"T00:00:00").toLocaleDateString("id-ID",{weekday:"long",day:"numeric",month:"long"}); 
   } catch { 
     return d; 
   } 
@@ -112,7 +112,7 @@ const fmtTime = t => {
 
 const fmtDateWithYear = d => { 
   try { 
-    return new Date(d+"T00:00:00").toLocaleDateString("id-ID",{weekday:"short",day:"numeric",month:"short",year:"numeric"}); 
+    return new Date(d+"T00:00:00").toLocaleDateString("id-ID",{weekday:"long",day:"numeric",month:"long",year:"numeric"}); 
   } catch { 
     return d; 
   } 
@@ -1100,7 +1100,33 @@ function MatchCard({ m, lookupParticipant, onClick, official, view = "schedule" 
     return palette[(parseInt(n, 10) || 0) % palette.length];
   };
 
-  // ─── Team Row Component ──────────────────────────────────────────────────
+  // ─── RT Badge Component ──────────────────────────────────────────────────
+  const RtBadge = ({ rt }) => {
+    if (!rt) return null;
+    return (
+      <span
+        style={{
+          display: "inline-flex",
+          alignItems: "center",
+          gap: 5,
+          flexShrink: 0,
+          fontSize: 11,
+          fontWeight: 600,
+          color: C.body,
+          background: C.surface,
+          border: `1px solid ${C.border}`,
+          borderRadius: 99,
+          padding: "3px 8px",
+          whiteSpace: "nowrap"
+        }}
+      >
+        <span style={{ width: 9, height: 9, borderRadius: 99, background: rtColor(rt), display: "inline-block", flexShrink: 0 }} />
+        {rt}
+      </span>
+    );
+  };
+
+  // ─── Team Row Component (Results only) ──────────────────────────────────
   const TeamRow = ({ p, rt, side, score }) => {
     const won = res === side;
     const isTbd = !p || p.isTbd;
@@ -1135,27 +1161,7 @@ function MatchCard({ m, lookupParticipant, onClick, official, view = "schedule" 
           >
             {isTbd ? "TBD" : p.name}
           </span>
-          {rt && (
-            <span
-              style={{
-                display: "inline-flex",
-                alignItems: "center",
-                gap: 5,
-                flexShrink: 0,
-                fontSize: 11,
-                fontWeight: 600,
-                color: C.body,
-                background: C.surface,
-                border: `1px solid ${C.border}`,
-                borderRadius: 99,
-                padding: "3px 8px",
-                whiteSpace: "nowrap"
-              }}
-            >
-              <span style={{ width: 9, height: 9, borderRadius: 99, background: rtColor(rt), display: "inline-block", flexShrink: 0 }} />
-              {rt}
-            </span>
-          )}
+          <RtBadge rt={rt} />
           {won && <span style={{ fontSize: 14, flexShrink: 0 }}>🏆</span>}
         </div>
         {showScore && (
@@ -1174,7 +1180,7 @@ function MatchCard({ m, lookupParticipant, onClick, official, view = "schedule" 
     );
   };
 
-  // ─── Score Component (only for Schedule view) ────────────────────────────
+  // ─── Score Component (Schedule only) ──────────────────────────────────────
   const Score = () => {
     if (isResults) return null;
     
@@ -1302,18 +1308,58 @@ function MatchCard({ m, lookupParticipant, onClick, official, view = "schedule" 
           <TeamRow p={pB} rt={m.rtB} side="B" score={m.scoreB} />
         </>
       ) : (
-        // ─── SCHEDULE LAYOUT ──────────────────────────────────────────────
+        // ─── SCHEDULE LAYOUT - HORIZONTAL ─────────────────────────────────
         <div style={{ 
           display: "flex", 
           alignItems: "center", 
-          gap: 4, 
+          gap: 6, 
           marginTop: 0,
           flexWrap: "wrap",
           justifyContent: "center"
         }}>
-          <TeamRow p={pA} rt={m.rtA} side="A" />
+          {/* Player A */}
+          <div style={{ display: "flex", alignItems: "center", gap: 6, flex: "1 1 auto", minWidth: 0, justifyContent: "flex-end" }}>
+            <span
+              style={{
+                fontSize: 15,
+                fontWeight: res === 'A' ? 800 : 600,
+                color: !pA || pA.isTbd ? C.faint : res === 'A' ? C.red : C.ink,
+                wordBreak: "break-word",
+                overflowWrap: "break-word",
+                lineHeight: 1.3,
+                flexShrink: 1,
+                minWidth: 0,
+                textAlign: "right"
+              }}
+            >
+              {!pA || pA.isTbd ? "TBD" : pA.name}
+            </span>
+            <RtBadge rt={m.rtA} />
+            {res === 'A' && <span style={{ fontSize: 14, flexShrink: 0 }}>🏆</span>}
+          </div>
+
           <Score />
-          <TeamRow p={pB} rt={m.rtB} side="B" />
+
+          {/* Player B */}
+          <div style={{ display: "flex", alignItems: "center", gap: 6, flex: "1 1 auto", minWidth: 0, justifyContent: "flex-start" }}>
+            {res === 'B' && <span style={{ fontSize: 14, flexShrink: 0 }}>🏆</span>}
+            <RtBadge rt={m.rtB} />
+            <span
+              style={{
+                fontSize: 15,
+                fontWeight: res === 'B' ? 800 : 600,
+                color: !pB || pB.isTbd ? C.faint : res === 'B' ? C.red : C.ink,
+                wordBreak: "break-word",
+                overflowWrap: "break-word",
+                lineHeight: 1.3,
+                flexShrink: 1,
+                minWidth: 0,
+                textAlign: "left"
+              }}
+            >
+              {!pB || pB.isTbd ? "TBD" : pB.name}
+            </span>
+          </div>
         </div>
       )}
 
