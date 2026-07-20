@@ -35,8 +35,8 @@ const PROGRAM_VENUES = [
 
 // ─── DESIGN TOKENS ──────────────────────────────────────────────────────────
 const C = {
-  bg:"#F8F0F0", surface:"#FDF5F5", card:"#FFFFFF", border:"#EDD5D5", borderMid:"#DDB8B8",
-  red:"#DC1C1C", redLight:"#FF4444", redDeep:"#8B0000", redFaint:"#FFF0F0", redGlow:"rgba(220,28,28,0.12)",
+  bg:"#FBF7F4", surface:"#FDF5F5", card:"#FFFFFF", border:"#EDD5D5", borderMid:"#DDB8B8",
+  red:"#B71C1C", redLight:"#FF4444", redDeep:"#8B0000", redFaint:"#FDECEC", redGlow:"rgba(183,28,28,0.12)",
   ink:"#1A0505", body:"#3D1515", muted:"#8B6060", faint:"#C09090", white:"#FFFFFF",
   gold:"#C8960C", silver:"#6B7280", bronze:"#92400E",
   greenText:"#166534", greenBg:"#F0FDF4", greenBorder:"#BBF7D0",
@@ -544,8 +544,8 @@ const STATUS = {
 // ─── UI ATOMS ──────────────────────────────────────────────────────────────
 const Pill = ({status}) => {
   const s=STATUS[status];
-  return <span style={{display:"inline-flex",alignItems:"center",gap:4,padding:"2px 9px",borderRadius:99,fontSize:11,fontWeight:700,background:s.bg,color:s.text,border:`1px solid ${s.border}`}}>
-    {status==="live"&&<span style={{width:6,height:6,borderRadius:99,background:C.red,display:"inline-block",animation:"pulse 1s infinite"}}/>}
+  return <span style={{display:"inline-flex",alignItems:"center",gap:5,padding:"4px 11px",borderRadius:99,fontSize:13,fontWeight:700,background:s.bg,color:s.text,border:`1px solid ${s.border}`}}>
+    {status==="live"&&<span style={{width:7,height:7,borderRadius:99,background:C.red,display:"inline-block",animation:"pulse 1s infinite"}}/>}
     {s.label}
   </span>;
 };
@@ -554,7 +554,7 @@ const SportBadge = ({sport}) => {
   const meta=SPORT_META[sport]??{emoji:"🏅"};
   const typeColors={singles:["#F5F3FF","#6D28D9"],doubles:["#FFF7ED","#C2410C"]};
   const [bg,color]=typeColors[meta.matchType]??["#F9FAFB","#374151"];
-  return <span style={{display:"inline-flex",alignItems:"center",gap:4,padding:"2px 9px",borderRadius:99,fontSize:11,fontWeight:700,background:bg,color:color,border:`1px solid ${color}33`}}>{meta.emoji} {sport}</span>;
+  return <span style={{display:"inline-flex",alignItems:"center",gap:4,padding:"4px 11px",borderRadius:99,fontSize:13,fontWeight:700,background:bg,color:color,border:`1px solid ${color}33`}}>{meta.emoji} {SPORT_DISPLAY[sport] || sport}</span>;
 };
 
 // ─── LOGIN MODAL ────────────────────────────────────────────────────────────
@@ -1078,29 +1078,52 @@ function MatchCard({ m, lookupParticipant, onClick, official }) {
      (official.role === "domino_admin" && m.sport === "Domino")) &&
     m.status !== "finished";
 
-  // ─── Name Component ──────────────────────────────────────────────────────
-  const Name = ({ p, side }) => {
-    if (!p || p.isTbd) return <span style={{ color: C.faint }}>TBD</span>;
+  const rtColor = (rt) => {
+    const palette = ["#DC2626","#2563EB","#16A34A","#D97706","#7C3AED","#EA580C","#0891B2","#BE185D","#475569","#CA8A04"];
+    const n = String(rt || "").replace(/\D/g, "");
+    return palette[(parseInt(n, 10) || 0) % palette.length];
+  };
+
+  const TeamRow = ({ p, rt, side }) => {
     const won = res === side;
+    const isTbd = !p || p.isTbd;
     return (
-      <div style={{ display: "flex", alignItems: "center", gap: 6, flex: 1, minWidth: 0 }}>
-        <div style={{ minWidth: 0, flex: 1 }}>
-          <div
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
+        <span
+          style={{
+            flex: "1 1 auto",
+            minWidth: 0,
+            fontSize: 18,
+            fontWeight: won ? 800 : 700,
+            lineHeight: 1.3,
+            color: isTbd ? C.faint : won ? C.red : C.ink,
+            overflowWrap: "break-word",
+          }}
+        >
+          {isTbd ? "TBD" : p.name}
+          {won && " 🏆"}
+        </span>
+        {rt && (
+          <span
             style={{
-              fontWeight: won ? 900 : 600,
+              display: "inline-flex",
+              alignItems: "center",
+              gap: 7,
+              flexShrink: 0,
               fontSize: 13,
-              color: won ? C.ink : C.body,
-              wordBreak: "break-word",
-              lineHeight: 1.3
+              fontWeight: 600,
+              color: C.body,
+              background: C.surface,
+              border: `1px solid ${C.border}`,
+              borderRadius: 99,
+              padding: "5px 11px",
+              whiteSpace: "nowrap",
             }}
           >
-            {p.name}
-          </div>
-          {side === 'A' && m.rtA && <div style={{ fontSize: 10, color: C.muted }}>{m.rtA}</div>}
-          {side === 'B' && m.rtB && <div style={{ fontSize: 10, color: C.muted }}>{m.rtB}</div>}
-          {!m.rtA && !m.rtB && p.club && <div style={{ fontSize: 10, color: C.muted }}>{p.club}</div>}
-        </div>
-        {won && <span style={{ fontSize: 14, flexShrink: 0 }}>🏆</span>}
+            <span style={{ width: 11, height: 11, borderRadius: 99, background: rtColor(rt), display: "inline-block", flexShrink: 0 }} />
+            {rt}
+          </span>
+        )}
       </div>
     );
   };
@@ -1226,29 +1249,19 @@ function MatchCard({ m, lookupParticipant, onClick, official }) {
         )}
       </div>
 
-      <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-        <Name p={pA} side="A" />
-        <Score />
-        <div style={{ display: "flex", alignItems: "center", gap: 6, flex: 1, minWidth: 0, justifyContent: "flex-end" }}>
-          {res === "B" && <span style={{ fontSize: 14, flexShrink: 0 }}>🏆</span>}
-          {pB && !pB.isTbd ? (
-            <div style={{ minWidth: 0, textAlign: "right" }}>
-              <div style={{ fontWeight: res === "B" ? 900 : 600, fontSize: 13, color: res === "B" ? C.ink : C.body, wordBreak: "break-word", lineHeight: 1.3 }}>
-                {pB.name}
-              </div>
-              {m.rtB && <div style={{ fontSize: 10, color: C.muted }}>{m.rtB}</div>}
-              {!m.rtB && pB.club && <div style={{ fontSize: 10, color: C.muted }}>{pB.club}</div>}
-            </div>
-          ) : (
-            <span style={{ color: C.faint }}>TBD</span>
-          )}
+      <div style={{ display: "flex", flexDirection: "column" }}>
+        <TeamRow p={pA} rt={m.rtA} side="A" />
+        <div style={{ display: "flex", alignItems: "center", gap: 10, margin: "9px 0" }}>
+          <span style={{ flex: 1, height: 1, background: C.border }} />
+          <Score />
+          <span style={{ flex: 1, height: 1, background: C.border }} />
         </div>
+        <TeamRow p={pB} rt={m.rtB} side="B" />
       </div>
 
-      <div style={{ fontSize: 11, color: C.muted, marginTop: 4, display: "flex", gap: 8 }}>
-        <span>📅 {m.date ? fmtDate(m.date) : "—"}</span>
-        <span>🕐 {m.time ? fmtTime(m.time) : "—"}</span>
-        <span>📍 {m.venue || "—"}</span>
+      <div style={{ fontSize: 14, color: C.muted, marginTop: 12, paddingTop: 11, borderTop: `1px solid ${C.border}`, display: "flex", flexDirection: "column", gap: 7 }}>
+        <span>📅 {m.date ? fmtDate(m.date) : "—"} &nbsp;·&nbsp; 🕐 {m.time ? fmtTime(m.time) : "—"}</span>
+        <span style={{ overflowWrap: "break-word" }}>📍 {m.venue || "—"}</span>
       </div>
     </div>
   );
@@ -1301,7 +1314,7 @@ export default function App() {
     }
     loadBadminton();
   }, []);
- 
+
   // ─── LOAD TABLE TENNIS DATA ────────────────────────────────────────────────
 useEffect(() => {
   async function loadTableTennis() {
@@ -1311,7 +1324,7 @@ useEffect(() => {
   }
   loadTableTennis();
 }, []);
-  
+
   // ─── LOAD CHESS & DOMINO DATA ─────────────────────────────────────────────
   const loadChess = async () => {
     const data = await fetchSportMatches(CHESS_TABLE, 'Chess');
@@ -1389,7 +1402,7 @@ useEffect(() => {
     setNpForm({title:"",date:"",time:"09:00",venue:"",description:"",audience:"All"});
     showToast("Program event added!");
   };
-  
+
   const handleSaveProgram = (form) => {
     setProgramEvents(p=>p.map(e=>e.id===form.id?{...e,...form}:e));
     setEditProgItem(null); showToast("Event updated!");
@@ -1451,18 +1464,18 @@ useEffect(() => {
     showToast("Please login first", "error");
     return;
   }
-  
+
   // Check if user has permission for this sport
   const hasPermission = 
     official.role === "admin" ||
     (official.role === "chess_admin" && match.sport === "Chess") ||
     (official.role === "domino_admin" && match.sport === "Domino");
-  
+
   if (!hasPermission) {
     showToast("You don't have permission to score this sport", "error");
     return;
   }
-  
+
   if ((match.sport === "Chess" || match.sport === "Domino") && match.status !== "finished") {
     setScoreModal(match);
   }
@@ -1518,284 +1531,264 @@ useEffect(() => {
       {showLogin&&<LoginModal accounts={officialAccounts} onLogin={u=>{setOfficial(u);setShowLogin(false);setView("schedule");showToast(`Welcome, ${u.role}!`);}} onCancel={()=>setShowLogin(false)}/>}
 
       {editProgItem&&(
-        <EditModal item={editProgItem} clubs={clubs} players={players} pairs={pairs}
-          onSave={handleSaveProgram} onClose={()=>setEditProgItem(null)}/>
+        <EditModal
+          item={editProgItem}
+          clubs={clubs}
+          players={players}
+          pairs={pairs}
+          onSave={handleSaveProgram}
+          onClose={()=>setEditProgItem(null)}
+        />
       )}
 
-      {liveNow.length>0&&(
-        <div style={{background:`linear-gradient(90deg,${C.redDeep},${C.red})`,color:C.white,fontSize:11,fontWeight:700,padding:"6px 16px",display:"flex",gap:24,overflowX:"auto",whiteSpace:"nowrap"}}>
-          <span style={{display:"flex",alignItems:"center",gap:6}}><span style={{width:6,height:6,borderRadius:99,background:C.white,display:"inline-block",animation:"pulse 1s infinite"}}/>LIVE NOW</span>
-          {liveNow.map((m,i)=>{const pA=lookupParticipant(m.sport,m.pA),pB=lookupParticipant(m.sport,m.pB);return <span key={i}>{pA?.name??"?"} vs {pB?.name??"?"} · {m.sport}</span>;})}
-        </div>
-      )}
-
-      <div style={{background:C.white,borderBottom:`1.5px solid ${C.border}`,boxShadow:"0 1px 8px rgba(139,0,0,0.06)"}}>
-        <div style={{maxWidth:1040,margin:"0 auto",padding:"0 16px"}}>
-          <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"16px 0 12px",flexWrap:"wrap",gap:10}}>
-            <div style={{display:"flex",alignItems:"center",gap:10}}>
-              <img src={LOGO_URL} alt="Logo"
-                onClick={()=>{
-                  logoClickCount.current+=1;
-                  if(logoClickTimer.current) clearTimeout(logoClickTimer.current);
-                  logoClickTimer.current=setTimeout(()=>{logoClickCount.current=0;},600);
-                  if(logoClickCount.current>=3){logoClickCount.current=0;if(!official)setShowLogin(true);}
-                }}
-                style={{width:44,height:44,borderRadius:12,boxShadow:`0 4px 16px ${C.redGlow}`,objectFit:"cover",cursor:"default",userSelect:"none"}}/>
-              <div>
-                <div style={{fontSize:18,fontWeight:900,color:C.ink,letterSpacing:"-0.5px",lineHeight:1}}>HUT RI <span style={{color:C.red}}>BJP</span> <span style={{fontSize:14,fontWeight:700,color:C.muted}}>2026</span></div>
-                <div style={{fontSize:9,color:C.muted,letterSpacing:2,textTransform:"uppercase",marginTop:2}}>Indonesia Berdaulat Adil dan Makmur</div>
-              </div>
-            </div>
-            {official&&(
-              <div style={{display:"flex",alignItems:"center",gap:8}}>
-                <div style={{textAlign:"right"}}><div style={{fontSize:12,fontWeight:700,color:C.ink}}>{official.badge} {official.role}</div><div style={{fontSize:11,color:C.muted}}>{official.username}</div></div>
-                <button onClick={()=>{setOfficial(null);setView("schedule");showToast("Logged out");}} style={{...ghostBtn(false),padding:"6px 14px",fontSize:12}}>Logout</button>
-              </div>
-            )}
-          </div>
-          <nav style={{display:"flex",gap:2,overflowX:"auto",marginBottom:"-1.5px"}}>
-            {[
-              ["schedule","📅 Jadwal"],
-              ["results","✅ Hasil Pertandingan"],
-              ...(official?[["official","⚙️ Officials"]]:[])
-            ].map(([v,l])=><button key={v} style={navBtn(view===v)} onClick={()=>setView(v)}>{l}</button>)}
-          </nav>
-        </div>
-      </div>
-
-      <div style={{maxWidth:1040,margin:"0 auto",padding:"16px 16px 40px"}}>
-
-        {/* ── SCHEDULE ── */}
-        {view==="schedule"&&<>
-          <div style={{display:"flex",alignItems:"baseline",justifyContent:"space-between",marginBottom:16,flexWrap:"wrap",gap:8}}>
-            <h1 style={{fontSize:20,fontWeight:900,color:C.ink,margin:0}}>Jadwal</h1>
-            <span style={{fontSize:12,color:C.muted}}>{allScheduleItems.length} events</span>
-          </div>
-          <div style={{background:C.white,border:`1.5px solid ${C.border}`,borderRadius:10,padding:"10px 14px",marginBottom:20}}>
-            <div style={{display:"flex",gap:4,flexWrap:"wrap",alignItems:"center"}}>
-              <span style={{fontSize:10,color:C.muted,fontWeight:700,letterSpacing:1}}>VIEW</span>
-              {[
-                ["All","Semua"],
-                ["match","Matches"],
-                ["program","Program"]
-              ].map(([v,l])=>(
-                <button key={v} style={ghostBtn(filterKind===v)} onClick={()=>setFilterKind(v)}>{l}</button>
-              ))}
-              {filterKind!=="program"&&<>
-                <div style={{width:1,height:18,background:C.border}}/>
-                <span style={{fontSize:10,color:C.muted,fontWeight:700,letterSpacing:1}}>SPORT</span>
-                {SPORTS.map(s=><button key={s} style={ghostBtn(filterSport===s)} onClick={()=>setFilterSport(s)}>{SPORT_META[s].emoji} {SPORT_DISPLAY[s]}</button>)}
-                <button style={ghostBtn(filterSport==="All")} onClick={()=>setFilterSport("All")}>Semua</button>
-                <div style={{width:1,height:18,background:C.border}}/>
-                <select style={{...inp,width:"auto",padding:"4px 10px",fontSize:12}} value={filterStatus} onChange={e=>setFilterStatus(e.target.value)}>
-                  {["All","scheduled","live","finished"].map(v=><option key={v} value={v}>{v==="All"?"All":v.charAt(0).toUpperCase()+v.slice(1)}</option>)}
-                </select>
-              </>}
-            </div>
-          </div>
-          <ScheduleList/>
-        </>}
-
-        {/* ── RESULTS ── */}
-        {view === "results" && (
-  <>
-    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16, flexWrap: "wrap", gap: 8 }}>
-      <h1 style={{ fontSize: 20, fontWeight: 900, color: C.ink, margin: 0 }}>Hasil Pertandingan</h1>
-      <button
-        onClick={() => setShowAllResults(!showAllResults)}
-        style={{
-          padding: "8px 16px",
-          borderRadius: 8,
-          border: `1.5px solid ${C.border}`,
-          background: showAllResults ? C.redFaint : C.white,
-          color: showAllResults ? C.red : C.muted,
-          cursor: "pointer",
-          fontWeight: 600,
-          fontSize: 13,
-          minHeight: 40
-        }}
-      >
-        {showAllResults ? "📅 Tampilkan Akhir Pekan" : "📋 Tampilkan Semua"}
-      </button>
-    </div>
-
-    {/* Sport filter buttons */}
-    <div style={{ display: "flex", gap: 4, flexWrap: "wrap", marginBottom: 16 }}>
-      {["All", ...SPORTS].map(s => (
-        <button key={s} style={ghostBtn(filterSport === s)} onClick={() => setFilterSport(s)}>
-          {s !== "All" ? SPORT_META[s]?.emoji + " " : ""}
-          {s === "All" ? "Semua" : SPORT_DISPLAY[s] || s}
-        </button>
-      ))}
-    </div>
-
-    {/* Filtered results */}
-    {(() => {
-      // Calculate last weekend (Friday to Sunday)
-      const now = new Date();
-      const day = now.getDay(); // 0=Sunday, 5=Friday, 6=Saturday
-      
-      let friday = new Date(now);
-      let daysToFriday = day >= 5 ? day - 5 : day + 2; // If today is Sat/Sun, go back to Friday
-      friday.setDate(friday.getDate() - daysToFriday);
-      
-      let sunday = new Date(friday);
-      sunday.setDate(sunday.getDate() + 2);
-      
-      // Format for comparison
-      const formatDate = (d) => d.toISOString().split('T')[0];
-      const fridayStr = formatDate(friday);
-      const sundayStr = formatDate(sunday);
-      
-      // Filter matches
-      let filtered = resultMatches.filter(m => filterSport === "All" || m.sport === filterSport);
-      
-      if (!showAllResults) {
-        filtered = filtered.filter(m => {
-          if (!m.date) return false;
-          return m.date >= fridayStr && m.date <= sundayStr;
-        });
-      }
-      
-      if (filtered.length === 0) {
-        return (
-          <div style={{ textAlign: "center", color: C.faint, padding: 48, fontSize: 14 }}>
-            <div style={{ fontSize: 36, marginBottom: 12 }}>🏆</div>
-            <div style={{ fontWeight: 700, color: C.muted, marginBottom: 6 }}>
-              {showAllResults ? "Belum ada hasil" : `Tidak ada hasil untuk akhir pekan ini (${fridayStr} - ${sundayStr})`}
-            </div>
-            <div style={{ fontSize: 12 }}>
-              {showAllResults ? "Hasil akan muncul setelah pertandingan selesai." : "Coba tampilkan semua hasil."}
-            </div>
-          </div>
-        );
-      }
-      
-      return filtered
-        .sort((a, b) => b.date?.localeCompare(a.date ?? "") || b.time?.localeCompare(a.time ?? ""))
-        .map((m, i) => (
-          <div key={i} style={{ display: "flex", marginBottom: 8 }}>
-            <div style={{ width: 48, paddingTop: 16, paddingRight: 10, textAlign: "right", flexShrink: 0 }}>
-              <span style={{ fontSize: 12, fontWeight: 700, color: C.muted }}>{m.time ? fmtTime(m.time) : "—"}</span>
-            </div>
-            <div style={{ flex: 1 }}>
-              <MatchCard m={m} lookupParticipant={lookupParticipant} />
-            </div>
-          </div>
-        ));
-    })()}
-  </>
-)}
-
-        {/* ── OFFICIALS ── */}
-        {view==="official"&&official&&<>
-          <div style={{marginBottom:16}}>
-            <h1 style={{fontSize:20,fontWeight:900,color:C.ink,margin:0}}>Officials Panel</h1>
-            <div style={{fontSize:12,color:C.muted,marginTop:2}}>{official.badge} {official.role} · {official.username}</div>
-          </div>
-          <div style={{display:"flex",gap:6,flexWrap:"wrap",marginBottom:20}}>
-            {official?.role === "admin" && (
-              <>
-                <button onClick={()=>setOfficialTab("program")} style={tabBtn(officialTab==="program")}>📌 Program</button>
-                <button onClick={()=>setOfficialTab("chess")} style={tabBtn(officialTab==="chess")}>♟️ Chess</button>
-                <button onClick={()=>setOfficialTab("domino")} style={tabBtn(officialTab==="domino")}>🀱 Domino</button>
-              </>
-            )}
-            {official?.role === "chess_admin" && (
-              <button onClick={()=>setOfficialTab("chess")} style={tabBtn(officialTab==="chess")}>♟️ Chess</button>
-            )}
-            {official?.role === "domino_admin" && (
-              <button onClick={()=>setOfficialTab("domino")} style={tabBtn(officialTab==="domino")}>🀱 Domino</button>
-            )}
-            {official?.role === "event_admin" && (
-              <button onClick={()=>setOfficialTab("program")} style={tabBtn(officialTab==="program")}>📌 Program</button>
-            )}
-          </div>
-
-          {officialTab==="program"&&(
-            <div style={{background:C.white,border:`1.5px solid ${C.border}`,borderRadius:12,padding:16,boxShadow:"0 1px 4px rgba(0,0,0,0.04)"}}>
-              <div style={{fontWeight:800,color:C.ink,marginBottom:8,fontSize:15}}>Program Events</div>
-              <div style={{fontSize:12,color:C.muted,marginBottom:16}}>Non-match events (ceremonies, meetings, press conferences, etc.) that appear in the public schedule.</div>
-
-              {programEvents.sort((a,b)=>a.date.localeCompare(b.date)||a.time.localeCompare(b.time)).map(e=>(
-                <div key={e.id} style={{background:C.surface,border:`1.5px solid ${C.border}`,borderRadius:10,padding:"10px 14px",marginBottom:8,display:"flex",alignItems:"center",gap:10,flexWrap:"wrap"}}>
-                  <div style={{flex:1,minWidth:160}}>
-                    <div style={{fontSize:11,color:C.muted,marginBottom:2}}>{fmtDate(e.date)} {e.time ? fmtTime(e.time) : ''} · {e.venue||"TBA"}</div>
-                    <div style={{fontWeight:700,fontSize:14,color:C.ink,wordBreak:"break-word"}}>{e.title}</div>
-                    {e.description&&<div style={{fontSize:12,color:C.muted,marginTop:2,wordBreak:"break-word"}}>{e.description}</div>}
-                  </div>
-                  <button onClick={()=>setEditProgItem(e)} style={{padding:"4px 10px",borderRadius:6,cursor:"pointer",fontSize:12,fontWeight:600,border:`1.5px solid ${C.border}`,background:C.white,color:C.body,minHeight:36}}>✏️</button>
-                  <button onClick={()=>setProgramEvents(p=>p.filter(x=>x.id!==e.id))} style={{padding:"4px 10px",borderRadius:6,cursor:"pointer",fontSize:12,fontWeight:600,border:"1.5px solid #FECACA",background:C.redFaint,color:C.red,minHeight:36}}>🗑</button>
-                </div>
-              ))}
-
-              {divider("ADD NEW EVENT")}
-              <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginBottom:12}}>
-                <div style={{gridColumn:"1/-1"}}><label style={lbl}>TITLE</label><input style={inp} value={npForm.title} onChange={e=>setNpForm(f=>({...f,title:e.target.value}))} placeholder="Opening Ceremony, Technical Meeting…"/></div>
-                <div><label style={lbl}>AUDIENCE</label><input style={inp} value={npForm.audience} onChange={e=>setNpForm(f=>({...f,audience:e.target.value}))} placeholder="All / Media / Athletes…"/></div>
-                <div><label style={lbl}>DATE</label><input style={inp} type="date" value={npForm.date} onChange={e=>setNpForm(f=>({...f,date:e.target.value}))}/></div>
-                <div><label style={lbl}>TIME</label><input style={inp} type="time" value={npForm.time} onChange={e=>setNpForm(f=>({...f,time:e.target.value}))}/></div>
-                <div style={{gridColumn:"1/-1"}}><label style={lbl}>VENUE</label>
-                  <select style={inp} value={npForm.venue} onChange={e=>setNpForm(f=>({...f,venue:e.target.value}))}>
-                    <option value="">Select Venue</option>
-                    {PROGRAM_VENUES.map(v => <option key={v} value={v}>{v}</option>)}
-                  </select>
-                </div>
-                <div style={{gridColumn:"1/-1"}}><label style={lbl}>DESCRIPTION (optional)</label><input style={inp} value={npForm.description} onChange={e=>setNpForm(f=>({...f,description:e.target.value}))} placeholder="Brief description…"/></div>
-              </div>
-              {npForm.title&&npForm.date&&<div style={{marginBottom:12}}><div style={{fontSize:10,color:C.muted,fontWeight:700,letterSpacing:1,marginBottom:6}}>PREVIEW</div><ProgramCard e={npForm}/></div>}
-              <button style={primaryBtn} onClick={handleAddProgram}>📌 Add to Schedule</button>
-            </div>
-          )}
-
-          {officialTab==="chess"&&(
-            <SportManagement
-              sport="Chess"
-              matches={chessMatches}
-              onAdd={handleChessAdd}
-              onEdit={handleChessEdit}
-              onDelete={handleChessDelete}
-              onRefresh={loadChess}
-              showToast={showToast}
-            />
-          )}
-
-          {officialTab==="domino"&&(
-            <SportManagement
-              sport="Domino"
-              matches={dominoMatches}
-              onAdd={handleDominoAdd}
-              onEdit={handleDominoEdit}
-              onDelete={handleDominoDelete}
-              onRefresh={loadDomino}
-              showToast={showToast}
-            />
-          )}
-        </>}
-
-        {view==="official"&&!official&&(
-          <div style={{textAlign:"center",padding:60}}>
-            <div style={{width:72,height:72,borderRadius:99,background:C.redFaint,border:"1.5px solid #FECACA",display:"flex",alignItems:"center",justifyContent:"center",fontSize:32,margin:"0 auto 16px"}}>🔒</div>
-            <div style={{fontSize:18,fontWeight:800,color:C.ink,marginBottom:6}}>Officials Only</div>
-            <div style={{fontSize:13,color:C.muted,marginBottom:24}}>Sign in to access the Officials Panel.</div>
-            <button style={primaryBtn} onClick={()=>setShowLogin(true)}>Sign In</button>
-          </div>
-        )}
-      </div>
-
-      {scoreModal && (
+      {scoreModal&&(
         <ScoreModal
           match={scoreModal}
           onSave={handleScoreSave}
-          onClose={() => setScoreModal(null)}
+          onClose={()=>setScoreModal(null)}
         />
       )}
 
       {toast&&(
-        <div style={{position:"fixed",bottom:20,left:"50%",transform:"translateX(-50%)",zIndex:999,padding:"12px 20px",borderRadius:10,fontWeight:700,fontSize:14,color:C.white,background:toast.type==="error"?C.redDeep:"#166534",border:`1px solid ${toast.type==="error"?C.red:C.greenBorder}`,boxShadow:"0 6px 30px rgba(0,0,0,0.15)",maxWidth:"90%",textAlign:"center"}}>
+        <div style={{position:"fixed",bottom:24,left:"50%",transform:"translateX(-50%)",zIndex:999,background:toast.type==="error"?C.red:C.ink,color:C.white,padding:"12px 24px",borderRadius:10,fontSize:14,fontWeight:700,boxShadow:"0 8px 32px rgba(0,0,0,0.2)",maxWidth:"90vw",textAlign:"center"}}>
           {toast.msg}
         </div>
       )}
+
+      {/* ─── HEADER ──────────────────────────────────────────────────────── */}
+      <header style={{background:C.white,borderBottom:`1.5px solid ${C.border}`,padding:"12px 20px",position:"sticky",top:0,zIndex:100,display:"flex",alignItems:"center",justifyContent:"space-between",flexWrap:"wrap",gap:8}}>
+        <div style={{display:"flex",alignItems:"center",gap:10}}>
+          <img src={LOGO_URL} alt="BJP" style={{height:40,width:"auto",display:"block"}}/>
+          <div>
+            <div style={{fontWeight:900,fontSize:16,color:C.ink,lineHeight:1.2}}>HUT RI BJP 2026</div>
+            <div style={{fontSize:9,color:C.muted,letterSpacing:0.8}}>SPORTS FESTIVAL</div>
+          </div>
+        </div>
+        <div style={{display:"flex",alignItems:"center",gap:8,flexWrap:"wrap"}}>
+          {official ? (
+            <span style={{display:"inline-flex",alignItems:"center",gap:6,background:C.redFaint,border:`1px solid #FECACA`,borderRadius:99,padding:"4px 14px 4px 10px",fontSize:13,fontWeight:700,color:C.red}}>
+              {official.badge} {official.label}
+              <button onClick={()=>{setOfficial(null);showToast("Logged out");}} style={{background:"none",border:"none",cursor:"pointer",fontSize:16,color:C.muted,padding:"0 2px"}}>✕</button>
+            </span>
+          ) : (
+            <button onClick={()=>setShowLogin(true)} style={{padding:"8px 16px",borderRadius:9,border:"none",background:`linear-gradient(135deg,${C.redDeep},${C.red})`,color:C.white,cursor:"pointer",fontWeight:700,fontSize:13,minHeight:44}}>🔐 Admin</button>
+          )}
+        </div>
+      </header>
+
+      {/* ─── LIVE TICKER ────────────────────────────────────────────────── */}
+      {liveNow.length>0&&(
+        <div style={{background:C.redFaint,borderBottom:`1px solid #FECACA`,padding:"8px 16px",display:"flex",alignItems:"center",gap:8,flexWrap:"wrap"}}>
+          <span style={{display:"inline-flex",alignItems:"center",gap:4,color:C.red,fontWeight:800,fontSize:12,textTransform:"uppercase",letterSpacing:1}}>
+            <span style={{width:8,height:8,borderRadius:99,background:C.red,display:"inline-block",animation:"pulse 1s infinite"}}/> LIVE
+          </span>
+          <div style={{display:"flex",gap:12,flexWrap:"wrap",fontSize:13,fontWeight:600,color:C.ink}}>
+            {liveNow.map((m,i)=><span key={i}>{m.pA} vs {m.pB} <span style={{color:C.muted,fontWeight:400}}>· {m.sport}</span></span>)}
+          </div>
+        </div>
+      )}
+
+      {/* ─── MAIN CONTENT ────────────────────────────────────────────────── */}
+      <div style={{maxWidth:960,margin:"0 auto",padding:"16px 20px 100px"}}>
+
+        {/* ─── VIEW TABS ────────────────────────────────────────────────── */}
+        <div style={{display:"flex",gap:0,borderBottom:`1.5px solid ${C.border}`,marginBottom:20,overflowX:"auto"}}>
+          {["schedule","results","admin"].map(tab=>(
+            <button key={tab} onClick={()=>{setView(tab); if(tab==="admin"&&!official)setShowLogin(true);}} style={{
+              ...navBtn(view===tab),
+              padding:"12px 20px",
+              fontSize:14,
+              textTransform:"capitalize",
+              minHeight:44,
+              fontWeight:view===tab?800:600,
+            }}>
+              {tab==="schedule"?"📋 Jadwal":tab==="results"?"🏆 Hasil Pertandingan":"⚙️ Admin"}
+            </button>
+          ))}
+        </div>
+
+        {view==="schedule"&&(
+          <>
+            <div style={{display:"flex",flexWrap:"wrap",gap:10,marginBottom:18}}>
+              <select style={{...inp,width:"auto",padding:"8px 12px",fontSize:13}} value={filterSport} onChange={e=>setFilterSport(e.target.value)}>
+                <option value="All">Semua</option>
+                {SPORTS.map(s=><option key={s} value={s}>{SPORT_DISPLAY[s]}</option>)}
+              </select>
+              <select style={{...inp,width:"auto",padding:"8px 12px",fontSize:13}} value={filterStatus} onChange={e=>setFilterStatus(e.target.value)}>
+                <option value="All">Semua Status</option>
+                <option value="scheduled">Scheduled</option>
+                <option value="live">Live</option>
+                <option value="finished">Finished</option>
+              </select>
+              <select style={{...inp,width:"auto",padding:"8px 12px",fontSize:13}} value={filterKind} onChange={e=>setFilterKind(e.target.value)}>
+                <option value="All">Semua</option>
+                <option value="match">Pertandingan</option>
+                <option value="program">Acara</option>
+              </select>
+            </div>
+            <ScheduleList/>
+          </>
+        )}
+
+        {view==="results"&&(
+          <>
+            <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",flexWrap:"wrap",gap:10,marginBottom:16}}>
+              <div>
+                <h2 style={{fontSize:20,fontWeight:800,color:C.ink,margin:0}}>🏆 Hasil Pertandingan</h2>
+              </div>
+              <button onClick={()=>setShowAllResults(!showAllResults)} style={{...ghostBtn(showAllResults),fontSize:13,minHeight:44,padding:"10px 20px"}}>
+                {showAllResults?"Tampilkan Jadwal Minggu Ini":"Tampilkan Semua Hasil"}
+              </button>
+            </div>
+
+            <div style={{display:"flex",flexWrap:"wrap",gap:10,marginBottom:18}}>
+              <select style={{...inp,width:"auto",padding:"8px 12px",fontSize:13}} value={filterSport} onChange={e=>setFilterSport(e.target.value)}>
+                <option value="All">Semua</option>
+                {SPORTS.map(s=><option key={s} value={s}>{SPORT_DISPLAY[s]}</option>)}
+              </select>
+            </div>
+
+            {resultMatches
+              .filter(m=>filterSport==="All"||m.sport===filterSport)
+              .filter(m=>{
+                if(showAllResults) return true;
+                // Filter to only Friday-Sunday of current week
+                const today=new Date();
+                const day=today.getDay(); // 0=Sunday, 1=Monday, ...
+                const diffToFriday=(5-day+7)%7;
+                const friday=new Date(today);
+                friday.setDate(today.getDate()+diffToFriday);
+                friday.setHours(0,0,0,0);
+                const sunday=new Date(friday);
+                sunday.setDate(friday.getDate()+2);
+                sunday.setHours(23,59,59,999);
+                const matchDate=new Date(m.date+"T00:00:00");
+                return matchDate>=friday&&matchDate<=sunday;
+              })
+              .map((m,i)=>(
+                <MatchCard key={i} m={m} lookupParticipant={lookupParticipant} official={official} />
+              ))
+            }
+            {resultMatches.filter(m=>filterSport==="All"||m.sport===filterSport).filter(m=>{
+              if(showAllResults) return true;
+              const today=new Date();
+              const day=today.getDay();
+              const diffToFriday=(5-day+7)%7;
+              const friday=new Date(today);
+              friday.setDate(today.getDate()+diffToFriday);
+              friday.setHours(0,0,0,0);
+              const sunday=new Date(friday);
+              sunday.setDate(friday.getDate()+2);
+              sunday.setHours(23,59,59,999);
+              const matchDate=new Date(m.date+"T00:00:00");
+              return matchDate>=friday&&matchDate<=sunday;
+            }).length===0 && (
+              <div style={{textAlign:"center",color:C.faint,padding:40,fontSize:14}}>
+                <div style={{fontSize:32,marginBottom:10}}>📊</div>
+                <div style={{fontWeight:700,color:C.muted}}>No results for this period</div>
+                <div style={{fontSize:12}}>Try adjusting filters or viewing all results.</div>
+              </div>
+            )}
+          </>
+        )}
+
+        {view==="admin"&&official&&(
+          <div style={{marginTop:12}}>
+            <div style={{display:"flex",gap:6,borderBottom:`1.5px solid ${C.border}`,marginBottom:16,flexWrap:"wrap"}}>
+              {official.role==="admin"&&(
+                <>
+                  <button onClick={()=>setOfficialTab("program")} style={{...tabBtn(officialTab==="program"),minHeight:44}}>📋 Program</button>
+                  <button onClick={()=>setOfficialTab("chess")} style={{...tabBtn(officialTab==="chess"),minHeight:44}}>♟️ Catur</button>
+                  <button onClick={()=>setOfficialTab("domino")} style={{...tabBtn(officialTab==="domino"),minHeight:44}}>🀱 Gaple</button>
+                </>
+              )}
+              {official.role==="event_admin"&&(
+                <button onClick={()=>setOfficialTab("program")} style={{...tabBtn(officialTab==="program"),minHeight:44}}>📋 Program</button>
+              )}
+              {official.role==="chess_admin"&&(
+                <button onClick={()=>setOfficialTab("chess")} style={{...tabBtn(officialTab==="chess"),minHeight:44}}>♟️ Catur</button>
+              )}
+              {official.role==="domino_admin"&&(
+                <button onClick={()=>setOfficialTab("domino")} style={{...tabBtn(officialTab==="domino"),minHeight:44}}>🀱 Gaple</button>
+              )}
+            </div>
+
+            {officialTab==="program"&&(
+              <div>
+                <div style={{background:C.white,border:`1.5px solid ${C.border}`,borderRadius:12,padding:16,boxShadow:"0 1px 4px rgba(0,0,0,0.04)"}}>
+                  <div style={{fontWeight:800,fontSize:16,color:C.ink,marginBottom:12}}>📋 Program Events</div>
+                  <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8}}>
+                    <div><input style={inp} value={npForm.title} onChange={e=>setNpForm({...npForm,title:e.target.value})} placeholder="Event title"/></div>
+                    <div><input style={inp} type="date" value={npForm.date} onChange={e=>setNpForm({...npForm,date:e.target.value})}/></div>
+                    <div><input style={inp} type="time" value={npForm.time} onChange={e=>setNpForm({...npForm,time:e.target.value})}/></div>
+                    <div>
+                      <select style={inp} value={npForm.venue} onChange={e=>setNpForm({...npForm,venue:e.target.value})}>
+                        <option value="">Venue</option>
+                        {PROGRAM_VENUES.map(v=><option key={v} value={v}>{v}</option>)}
+                      </select>
+                    </div>
+                    <div style={{gridColumn:"1/-1"}}><input style={inp} value={npForm.description} onChange={e=>setNpForm({...npForm,description:e.target.value})} placeholder="Description"/></div>
+                    <button onClick={handleAddProgram} style={{gridColumn:"1/-1",padding:"10px",borderRadius:9,border:"none",background:`linear-gradient(135deg,${C.redDeep},${C.red})`,color:C.white,cursor:"pointer",fontWeight:700,fontSize:14,minHeight:44}}>➕ Add Program</button>
+                  </div>
+                </div>
+
+                {programEvents.length===0 ? (
+                  <div style={{textAlign:"center",color:C.faint,padding:32,fontSize:14}}>No program events.</div>
+                ) : (
+                  <div style={{marginTop:12}}>
+                    {[...programEvents].sort((a,b)=>(a.date||"").localeCompare(b.date||"")||(a.time||"").localeCompare(b.time||"")).map(e=>(
+                      <div key={e.id} style={{background:C.white,border:`1.5px solid ${C.border}`,borderRadius:10,padding:12,marginBottom:6,display:"flex",justifyContent:"space-between",alignItems:"center",flexWrap:"wrap",gap:8}}>
+                        <div style={{display:"flex",alignItems:"center",gap:8,flex:1,minWidth:120}}>
+                          <span style={{fontWeight:700,fontSize:14,color:C.ink,wordBreak:"break-word"}}>{e.title}</span>
+                          <span style={{fontSize:12,color:C.muted}}>{e.date?fmtDate(e.date):""}</span>
+                          <span style={{fontSize:12,color:C.muted}}>{e.time?fmtTime(e.time):""}</span>
+                        </div>
+                        <div style={{display:"flex",gap:4}}>
+                          <button onClick={()=>setEditProgItem(e)} style={{fontSize:13,padding:"4px 10px",borderRadius:6,border:`1.5px solid ${C.border}`,background:C.white,cursor:"pointer",minHeight:36}}>✏️</button>
+                          <button onClick={()=>{if(window.confirm("Delete?")){setProgramEvents(p=>p.filter(x=>x.id!==e.id));showToast("Event deleted!");}}} style={{fontSize:13,padding:"4px 10px",borderRadius:6,border:"1.5px solid #FECACA",background:C.redFaint,color:C.red,cursor:"pointer",minHeight:36}}>🗑</button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+
+            {(officialTab==="chess" && (official.role==="admin"||official.role==="chess_admin"))&&(
+              <SportManagement
+                sport="Chess"
+                matches={chessMatches}
+                onAdd={handleChessAdd}
+                onEdit={handleChessEdit}
+                onDelete={handleChessDelete}
+                onRefresh={loadChess}
+                showToast={showToast}
+              />
+            )}
+
+            {(officialTab==="domino" && (official.role==="admin"||official.role==="domino_admin"))&&(
+              <SportManagement
+                sport="Domino"
+                matches={dominoMatches}
+                onAdd={handleDominoAdd}
+                onEdit={handleDominoEdit}
+                onDelete={handleDominoDelete}
+                onRefresh={loadDomino}
+                showToast={showToast}
+              />
+            )}
+          </div>
+        )}
+
+        {view==="admin"&&!official&&(
+          <div style={{textAlign:"center",color:C.muted,padding:64,fontSize:14}}>
+            <div style={{fontSize:48,marginBottom:12}}>🔐</div>
+            <div style={{fontWeight:700,fontSize:16,color:C.ink}}>Admin access restricted</div>
+            <div style={{marginTop:6}}>Please log in using the button in the header.</div>
+          </div>
+        )}
+
+      </div>
     </div>
   );
 }
