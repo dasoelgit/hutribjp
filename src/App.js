@@ -1293,7 +1293,6 @@ export default function App() {
   const [showAllResults, setShowAllResults] = useState(false);
   const [officialTab, setOfficialTab] = useState("program");
   const [filterSport, setFilterSport] = useState("All");
-  const [filterStatus, setFilterStatus] = useState("All");
   const [filterKind, setFilterKind] = useState("All");
   const [editProgItem, setEditProgItem] = useState(null);
   const [searchQuery, setSearchQuery] = useState("");
@@ -1384,9 +1383,6 @@ useEffect(() => {
   
   // Sport filter (only for matches)
   if(item.kind==="match" && filterSport!=="All" && item.sport!==filterSport) return false;
-  
-  // Status filter (only for matches)
-  if(item.kind==="match" && filterStatus!=="All" && item.status!==filterStatus) return false;
   
   // Search filter (matches participant names or program titles)
   if(searchQuery.trim() !== "") {
