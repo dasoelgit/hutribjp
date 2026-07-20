@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect } from "react";
 import { createClient } from '@supabase/supabase-js';
+import BracketHutri from './brackethutri';
 
 const LOGO_URL = "/logo.jpg";
 
@@ -1580,6 +1581,7 @@ export default function App() {
   const [filterKind, setFilterKind] = useState("All");
   const [editProgItem, setEditProgItem] = useState(null);
   const [searchQuery, setSearchQuery] = useState("");
+  const [bracketSport, setBracketSport] = useState("All");
 
   const [npForm, setNpForm] = useState({title:"",date:"",time:"09:00",venue:"",description:"",audience:"All"});
   const [toast, setToast] = useState(null);
@@ -1908,7 +1910,7 @@ export default function App() {
 
         {/* ─── VIEW TABS ────────────────────────────────────────────────── */}
         <div style={{display:"flex",gap:0,borderBottom:`1.5px solid ${C.border}`,marginBottom:20,overflowX:"auto"}}>
-          {["schedule","results","admin"].map(tab=>{
+          {["schedule","results","bracket","admin"].map(tab=>{
             // Only show admin tab if user is logged in
             if(tab==="admin" && !official) return null;
             return (
@@ -1926,7 +1928,7 @@ export default function App() {
                 minHeight:44,
                 fontWeight:view===tab?800:600,
               }}>
-                {tab==="schedule"?"📋 Jadwal":tab==="results"?"🏆 Hasil Pertandingan":"⚙️ Admin"}
+                {tab==="schedule"?"📋 Jadwal":tab==="results"?"🏆 Hasil Pertandingan":tab==="bracket"?"🏟️ Bracket":"⚙️ Admin"}
               </button>
             );
           })}
@@ -2124,6 +2126,40 @@ export default function App() {
             )}
           </>
         )}
+
+        {view==="bracket"&&(
+  <div style={{ marginTop: 12 }}>
+    {/* Sport filter for bracket */}
+    <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginBottom: 16 }}>
+      {["All", "Badminton", "Table Tennis", "Chess", "Domino"].map(sport => (
+        <button
+          key={sport}
+          onClick={() => setBracketSport(sport)}
+          style={{
+            padding: "4px 12px",
+            borderRadius: 99,
+            border: `1.5px solid ${bracketSport === sport ? C.red : C.border}`,
+            background: bracketSport === sport ? C.redFaint : C.white,
+            color: bracketSport === sport ? C.red : C.body,
+            fontWeight: bracketSport === sport ? 700 : 500,
+            fontSize: 12,
+            cursor: "pointer",
+            minHeight: 32,
+          }}
+        >
+          {sport === "All" ? "📋 Semua" : sport === "Table Tennis" ? "🏓 Tenis Meja" : sport === "Badminton" ? "🏸 Badminton" : sport === "Chess" ? "♟️ Catur" : "🀱 Gaple"}
+        </button>
+      ))}
+    </div>
+
+    <BracketHutri 
+      matches={allMatches().filter(m => 
+        bracketSport === "All" ? true : m.sport === bracketSport
+      )}
+      title={bracketSport === "All" ? "🏆 Semua Turnamen" : `${bracketSport === "Table Tennis" ? "Tenis Meja" : bracketSport === "Badminton" ? "Badminton" : bracketSport === "Chess" ? "Catur" : "Gaple"} Bracket`}
+    />
+  </div>
+)}
 
         {view==="admin"&&official&&(
           <div style={{marginTop:12}}>
