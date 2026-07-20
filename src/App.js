@@ -90,13 +90,6 @@ const PAIRS_INIT = [];
 const seedProgram = () => [];
 
 // ─── HELPERS ────────────────────────────────────────────────────────────────
-const countSets = (sets, sport) => {
-  if (!sets?.length) return [0,0];
-  let wA=0, wB=0;
-  sets.forEach(s=>{ if(s.sA>s.sB) wA++; else if(s.sB>s.sA) wB++; });
-  return [wA,wB];
-};
-
 const fmtDate = d => { 
   try { 
     return new Date(d+"T00:00:00").toLocaleDateString("id-ID",{weekday:"short",day:"numeric",month:"short"}); 
