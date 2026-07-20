@@ -183,8 +183,8 @@ async function fetchBadmintonMatches() {
         const tm = match.tournament_matches[0];
         if (tm) {
           if (tm.tournaments) {
-              tournamentName = (tm.tournaments.name || '').replace(' Tournament', '');
-              }
+            tournamentName = tm.tournaments.name || '';
+          }
           const { stage, round } = tm;
           if (stage === 'group' && round === 1) roundLabel = 'Group Stage';
           else if (stage === 'knockout' && round === 1) roundLabel = 'Final';
@@ -1061,7 +1061,7 @@ function ProgramCard({ e }) {
 }
 
 // ─── MATCH CARD ─────────────────────────────────────────────────────────────
-function MatchCard({ m, lookupParticipant, onClick, official, view }) {
+function MatchCard({ m, lookupParticipant, onClick, official, view = "schedule" }) {
   let pA, pB;
 
   // Handle different sport types
@@ -1371,12 +1371,28 @@ export default function App() {
   const [filterKind, setFilterKind] = useState("All");
   const [editProgItem, setEditProgItem] = useState(null);
   const [searchQuery, setSearchQuery] = useState("");
-  
+
   const [npForm, setNpForm] = useState({title:"",date:"",time:"09:00",venue:"",description:"",audience:"All"});
   const [toast, setToast] = useState(null);
   const [official, setOfficial] = useState(null);
   const [showLogin, setShowLogin] = useState(false);
   const progIdRef = useRef(10);
+  const logoClickCount = useRef(0);
+  const logoClickTimer = useRef(null);
+
+  // ─── TRIPLE CLICK LOGIN ──────────────────────────────────────────────────
+  const handleLogoClick = () => {
+    logoClickCount.current += 1;
+    clearTimeout(logoClickTimer.current);
+    logoClickTimer.current = setTimeout(() => {
+      logoClickCount.current = 0;
+    }, 500);
+    if (logoClickCount.current >= 3) {
+      logoClickCount.current = 0;
+      clearTimeout(logoClickTimer.current);
+      setShowLogin(true);
+    }
+  };
 
   // ─── LOAD BADMINTON DATA ──────────────────────────────────────────────────
   useEffect(() => {
@@ -1389,14 +1405,14 @@ export default function App() {
   }, []);
 
   // ─── LOAD TABLE TENNIS DATA ────────────────────────────────────────────────
-useEffect(() => {
-  async function loadTableTennis() {
-    const data = await fetchTableTennisMatches();
-    setTtMatches(data);
-    console.log('Table Tennis matches loaded:', data.length);
-  }
-  loadTableTennis();
-}, []);
+  useEffect(() => {
+    async function loadTableTennis() {
+      const data = await fetchTableTennisMatches();
+      setTtMatches(data);
+      console.log('Table Tennis matches loaded:', data.length);
+    }
+    loadTableTennis();
+  }, []);
 
   // ─── LOAD CHESS & DOMINO DATA ─────────────────────────────────────────────
   const loadChess = async () => {
@@ -1449,38 +1465,32 @@ useEffect(() => {
 
   // ── Combined schedule items ──────────────────────────────────────────────
   const allScheduleItems = [
-  ...scheduleMatches.map(m=>({...m, _date:m.date, _time:m.time||""})),
-  ...programEvents.map(e=>({...e,  _date:e.date,  _time:e.time||""})),
-].filter(item=>{
-  // Kind filter
-  if(filterKind==="match"  &&item.kind!=="match")   return false;
-  if(filterKind==="program"&&item.kind!=="program") return false;
-  
-  // Sport filter (only for matches)
-  if(item.kind==="match" && filterSport!=="All" && item.sport!==filterSport) return false;
-  
-  // Search filter (matches participant names or program titles)
-  if(searchQuery.trim() !== "") {
-    const q = searchQuery.toLowerCase().trim();
-    if(item.kind==="match") {
-      // Match: search in player names
-      const pA = typeof item.pA === 'object' ? item.pA.name || '' : item.pA || '';
-      const pB = typeof item.pB === 'object' ? item.pB.name || '' : item.pB || '';
-      if(!pA.toLowerCase().includes(q) && !pB.toLowerCase().includes(q)) {
-        return false;
-      }
-    } else {
-      // Program: search in title and description
-      if(!(item.title || '').toLowerCase().includes(q) && 
-         !(item.description || '').toLowerCase().includes(q)) {
-        return false;
+    ...scheduleMatches.map(m=>({...m, _date:m.date, _time:m.time||""})),
+    ...programEvents.map(e=>({...e,  _date:e.date,  _time:e.time||""})),
+  ].filter(item=>{
+    if(filterKind==="match"  &&item.kind!=="match")   return false;
+    if(filterKind==="program"&&item.kind!=="program") return false;
+    if(item.kind==="match" && filterSport!=="All" && item.sport!==filterSport) return false;
+    
+    if(searchQuery.trim() !== "") {
+      const q = searchQuery.toLowerCase().trim();
+      if(item.kind==="match") {
+        const pA = typeof item.pA === 'object' ? item.pA.name || '' : item.pA || '';
+        const pB = typeof item.pB === 'object' ? item.pB.name || '' : item.pB || '';
+        if(!pA.toLowerCase().includes(q) && !pB.toLowerCase().includes(q)) {
+          return false;
+        }
+      } else {
+        if(!(item.title || '').toLowerCase().includes(q) && 
+           !(item.description || '').toLowerCase().includes(q)) {
+          return false;
+        }
       }
     }
-  }
-  
-  return true;
-}).sort((a,b)=>a._date.localeCompare(b._date)||a._time.localeCompare(b._time));
-  
+    
+    return true;
+  }).sort((a,b)=>a._date.localeCompare(b._date)||a._time.localeCompare(b._time));
+
   const grouped = allScheduleItems.reduce((acc,item)=>{
     if(!acc[item._date]) acc[item._date]=[];
     acc[item._date].push(item); return acc;
@@ -1648,10 +1658,18 @@ useEffect(() => {
       {/* ─── HEADER ──────────────────────────────────────────────────────── */}
       <header style={{background:C.white,borderBottom:`1.5px solid ${C.border}`,padding:"12px 20px",position:"sticky",top:0,zIndex:100,display:"flex",alignItems:"center",justifyContent:"space-between",flexWrap:"wrap",gap:8}}>
         <div style={{display:"flex",alignItems:"center",gap:10}}>
-          <img src={LOGO_URL} alt="BJP" style={{height:40,width:"auto",display:"block"}}/>
+          <img 
+            src={LOGO_URL} 
+            alt="BJP" 
+            style={{height:40,width:"auto",display:"block",cursor:"pointer"}} 
+            onClick={handleLogoClick}
+            title="Triple-click to login"
+          />
           <div>
-            <div style={{fontWeight:900,fontSize:16,color:C.ink,lineHeight:1.2}}>HUT RI BJP 2026</div>
-            <div style={{fontSize:9,color:C.muted,letterSpacing:0.8}}>SPORTS FESTIVAL</div>
+            <div style={{fontWeight:900,fontSize:16,color:C.ink,lineHeight:1.2}}>
+              HUT RI <span style={{color:C.red}}>BJP</span> 2026
+            </div>
+            <div style={{fontSize:9,color:C.muted,letterSpacing:0.8}}>INDONESIA BERDAULAT ADIL DAN MAKMUR</div>
           </div>
         </div>
         <div style={{display:"flex",alignItems:"center",gap:8,flexWrap:"wrap"}}>
@@ -1660,9 +1678,7 @@ useEffect(() => {
               {official.badge} {official.label}
               <button onClick={()=>{setOfficial(null);showToast("Logged out");}} style={{background:"none",border:"none",cursor:"pointer",fontSize:16,color:C.muted,padding:"0 2px"}}>✕</button>
             </span>
-          ) : (
-            <button onClick={()=>setShowLogin(true)} style={{padding:"8px 16px",borderRadius:9,border:"none",background:`linear-gradient(135deg,${C.redDeep},${C.red})`,color:C.white,cursor:"pointer",fontWeight:700,fontSize:13,minHeight:44}}>🔐 Admin</button>
-          )}
+          ) : null}
         </div>
       </header>
 
@@ -1683,198 +1699,222 @@ useEffect(() => {
 
         {/* ─── VIEW TABS ────────────────────────────────────────────────── */}
         <div style={{display:"flex",gap:0,borderBottom:`1.5px solid ${C.border}`,marginBottom:20,overflowX:"auto"}}>
-          {["schedule","results","admin"].map(tab=>(
-            <button key={tab} onClick={()=>{setView(tab); if(tab==="admin"&&!official)setShowLogin(true);}} style={{
-              ...navBtn(view===tab),
-              padding:"12px 20px",
-              fontSize:14,
-              textTransform:"capitalize",
-              minHeight:44,
-              fontWeight:view===tab?800:600,
-            }}>
-              {tab==="schedule"?"📋 Jadwal":tab==="results"?"🏆 Hasil Pertandingan":"⚙️ Admin"}
-            </button>
-          ))}
+          {["schedule","results","admin"].map(tab=>{
+            // Only show admin tab if user is logged in
+            if(tab==="admin" && !official) return null;
+            return (
+              <button key={tab} onClick={()=>{
+                if(tab==="admin" && !official) {
+                  setShowLogin(true);
+                  return;
+                }
+                setView(tab);
+              }} style={{
+                ...navBtn(view===tab),
+                padding:"12px 20px",
+                fontSize:14,
+                textTransform:"capitalize",
+                minHeight:44,
+                fontWeight:view===tab?800:600,
+              }}>
+                {tab==="schedule"?"📋 Jadwal":tab==="results"?"🏆 Hasil Pertandingan":"⚙️ Admin"}
+              </button>
+            );
+          })}
         </div>
 
-  {/* Schedule */}
         {view==="schedule"&&(
-  <>
-    <div style={{display:"flex",flexDirection:"column",gap:8,marginBottom:14}}>
-      <div style={{display:"flex",flexWrap:"wrap",gap:4}}>
-        {["All", ...SPORTS].map(s=>(
-          <button
-            key={s}
-            onClick={()=>setFilterSport(s)}
-            style={{
-              padding:"4px 10px",
-              borderRadius:99,
-              border:`1.5px solid ${filterSport===s?C.red:C.border}`,
-              background:filterSport===s?C.redFaint:C.white,
-              color:filterSport===s?C.red:C.body,
-              fontWeight:filterSport===s?700:500,
-              fontSize:11,
-              cursor:"pointer",
-              minHeight:30,
-              transition:"all 0.15s",
-              display:"inline-flex",
-              alignItems:"center",
-              gap:3
-            }}
-          >
-            {s==="All" ? "📋 Semua" : `${SPORT_META[s]?.emoji || ''} ${SPORT_DISPLAY[s]||s}`}
-          </button>
-        ))}
-      </div>
-      
-      <div style={{display:"flex",flexWrap:"wrap",gap:4,alignItems:"center"}}>
-        {["All", "match", "program"].map(k=>(
-          <button
-            key={k}
-            onClick={()=>setFilterKind(k)}
-            style={{
-              padding:"4px 10px",
-              borderRadius:99,
-              border:`1.5px solid ${filterKind===k?C.red:C.border}`,
-              background:filterKind===k?C.redFaint:C.white,
-              color:filterKind===k?C.red:C.body,
-              fontWeight:filterKind===k?700:500,
-              fontSize:11,
-              cursor:"pointer",
-              minHeight:30,
-              transition:"all 0.15s"
-            }}
-          >
-            {k==="All" ? "📋 Semua" : k==="match" ? "🏟️ Pertandingan" : "📅 Acara"}
-          </button>
-        ))}
-        
-        <span style={{fontSize:11,color:C.muted,marginLeft:4}}>|</span>
-        
-        <input
-          type="text"
-          placeholder="🔍 Cari nama..."
-          value={searchQuery}
-          onChange={e=>setSearchQuery(e.target.value)}
-          style={{
-            ...inp,
-            width:"auto",
-            minWidth:140,
-            padding:"4px 10px",
-            fontSize:11,
-            minHeight:30,
-            flex:1,
-            maxWidth:200
-          }}
-        />
-        {searchQuery && (
-          <button
-            onClick={()=>setSearchQuery("")}
-            style={{
-              padding:"4px 8px",
-              borderRadius:99,
-              border:`1.5px solid ${C.border}`,
-              background:C.surface,
-              color:C.muted,
-              fontSize:11,
-              cursor:"pointer",
-              minHeight:30,
-              fontWeight:600,
-              display:"inline-flex",
-              alignItems:"center"
-            }}
-          >
-            ✕
-          </button>
+          <>
+            <div style={{display:"flex",flexDirection:"column",gap:8,marginBottom:14}}>
+              <div style={{display:"flex",flexWrap:"wrap",gap:4}}>
+                {["All", ...SPORTS].map(s=>(
+                  <button
+                    key={s}
+                    onClick={()=>setFilterSport(s)}
+                    style={{
+                      padding:"3px 8px",
+                      borderRadius:99,
+                      border:`1.5px solid ${filterSport===s?C.red:C.border}`,
+                      background:filterSport===s?C.redFaint:C.white,
+                      color:filterSport===s?C.red:C.body,
+                      fontWeight:filterSport===s?700:500,
+                      fontSize:10,
+                      cursor:"pointer",
+                      minHeight:26,
+                      transition:"all 0.15s",
+                      display:"inline-flex",
+                      alignItems:"center",
+                      gap:3
+                    }}
+                  >
+                    {s==="All" ? "📋 Semua" : `${SPORT_META[s]?.emoji || ''} ${SPORT_DISPLAY[s]||s}`}
+                  </button>
+                ))}
+              </div>
+              
+              <div style={{display:"flex",flexWrap:"wrap",gap:4,alignItems:"center"}}>
+                {["All", "match", "program"].map(k=>(
+                  <button
+                    key={k}
+                    onClick={()=>setFilterKind(k)}
+                    style={{
+                      padding:"3px 8px",
+                      borderRadius:99,
+                      border:`1.5px solid ${filterKind===k?C.red:C.border}`,
+                      background:filterKind===k?C.redFaint:C.white,
+                      color:filterKind===k?C.red:C.body,
+                      fontWeight:filterKind===k?700:500,
+                      fontSize:10,
+                      cursor:"pointer",
+                      minHeight:26,
+                      transition:"all 0.15s"
+                    }}
+                  >
+                    {k==="All" ? "📋 Semua" : k==="match" ? "🏟️ Pertandingan" : "📅 Acara"}
+                  </button>
+                ))}
+                
+                <span style={{fontSize:10,color:C.muted,marginLeft:4}}>|</span>
+                
+                <input
+                  type="text"
+                  placeholder="🔍 Cari nama..."
+                  value={searchQuery}
+                  onChange={e=>setSearchQuery(e.target.value)}
+                  style={{
+                    ...inp,
+                    width:"auto",
+                    minWidth:120,
+                    padding:"3px 8px",
+                    fontSize:10,
+                    minHeight:26,
+                    flex:1,
+                    maxWidth:160
+                  }}
+                />
+                {searchQuery && (
+                  <button
+                    onClick={()=>setSearchQuery("")}
+                    style={{
+                      padding:"3px 6px",
+                      borderRadius:99,
+                      border:`1.5px solid ${C.border}`,
+                      background:C.surface,
+                      color:C.muted,
+                      fontSize:10,
+                      cursor:"pointer",
+                      minHeight:26,
+                      fontWeight:600,
+                      display:"inline-flex",
+                      alignItems:"center"
+                    }}
+                  >
+                    ✕
+                  </button>
+                )}
+              </div>
+            </div>
+            <ScheduleList/>
+          </>
         )}
-      </div>
-    </div>
-    <ScheduleList/>
-  </>
-)}
-  {/* Results */}
+
         {view==="results"&&(
-  <>
-    <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",flexWrap:"wrap",gap:10,marginBottom:16}}>
-      <div>
-        <h2 style={{fontSize:20,fontWeight:800,color:C.ink,margin:0}}>🏆 Hasil Pertandingan</h2>
-      </div>
-      <button onClick={()=>setShowAllResults(!showAllResults)} style={{...ghostBtn(showAllResults),fontSize:13,minHeight:44,padding:"10px 20px"}}>
-        {showAllResults?"Tampilkan Jadwal Minggu Ini":"Tampilkan Semua Hasil"}
-      </button>
-    </div>
+          <>
+            <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",flexWrap:"wrap",gap:10,marginBottom:16}}>
+              <div>
+                <h2 style={{fontSize:20,fontWeight:800,color:C.ink,margin:0}}>🏆 Hasil Pertandingan</h2>
+              </div>
+              <button onClick={()=>setShowAllResults(!showAllResults)} style={{...ghostBtn(showAllResults),fontSize:12,minHeight:36,padding:"6px 14px"}}>
+                {showAllResults?"Tampilkan Hasil Minggu Ini":"Tampilkan Semua Tanggal"}
+              </button>
+            </div>
 
-    <div style={{display:"flex",flexWrap:"wrap",gap:10,marginBottom:18}}>
-      <select style={{...inp,width:"auto",padding:"8px 12px",fontSize:13}} value={filterSport} onChange={e=>setFilterSport(e.target.value)}>
-        <option value="All">Semua</option>
-        {SPORTS.map(s=><option key={s} value={s}>{SPORT_DISPLAY[s]}</option>)}
-      </select>
-    </div>
+            <div style={{display:"flex",flexWrap:"wrap",gap:4,marginBottom:14}}>
+              {["All", ...SPORTS].map(s=>(
+                <button
+                  key={s}
+                  onClick={()=>setFilterSport(s)}
+                  style={{
+                    padding:"3px 8px",
+                    borderRadius:99,
+                    border:`1.5px solid ${filterSport===s?C.red:C.border}`,
+                    background:filterSport===s?C.redFaint:C.white,
+                    color:filterSport===s?C.red:C.body,
+                    fontWeight:filterSport===s?700:500,
+                    fontSize:10,
+                    cursor:"pointer",
+                    minHeight:26,
+                    transition:"all 0.15s",
+                    display:"inline-flex",
+                    alignItems:"center",
+                    gap:3
+                  }}
+                >
+                  {s==="All" ? "📋 Semua" : `${SPORT_META[s]?.emoji || ''} ${SPORT_DISPLAY[s]||s}`}
+                </button>
+              ))}
+            </div>
 
-    {resultMatches
-      .filter(m=>filterSport==="All"||m.sport===filterSport)
-      .filter(m=>{
-        if(showAllResults) return true;
-        // Filter to Friday-Sunday of the current week (past or present)
-        const today=new Date();
-        const day=today.getDay(); // 0=Sunday, 1=Monday, ...
-        
-        // Find the most recent Friday (or today if it's Friday)
-        let friday=new Date(today);
-        if (day === 5) {
-          // Today is Friday - use today
-          friday.setHours(0,0,0,0);
-        } else if (day < 5) {
-          // Monday-Thursday: go back to previous Friday
-          friday.setDate(today.getDate() - (day + 2));
-          friday.setHours(0,0,0,0);
-        } else {
-          // Saturday-Sunday: go back to previous Friday
-          friday.setDate(today.getDate() - (day - 5));
-          friday.setHours(0,0,0,0);
-        }
-        
-        const sunday=new Date(friday);
-        sunday.setDate(friday.getDate()+2);
-        sunday.setHours(23,59,59,999);
-        const matchDate=new Date(m.date+"T00:00:00");
-        return matchDate>=friday&&matchDate<=sunday;
-      })
-      .map((m,i)=>(
-        <MatchCard key={i} m={m} lookupParticipant={lookupParticipant} official={official} view="results" />
-      ))
-    }
-    {resultMatches.filter(m=>filterSport==="All"||m.sport===filterSport).filter(m=>{
-      if(showAllResults) return true;
-      const today=new Date();
-      const day=today.getDay();
-      
-      // Find the most recent Friday (or today if it's Friday)
-      let friday=new Date(today);
-      if (day === 5) {
-        friday.setHours(0,0,0,0);
-      } else if (day < 5) {
-        friday.setDate(today.getDate() - (day + 2));
-        friday.setHours(0,0,0,0);
-      } else {
-        friday.setDate(today.getDate() - (day - 5));
-        friday.setHours(0,0,0,0);
-      }
-      
-      const sunday=new Date(friday);
-      sunday.setDate(friday.getDate()+2);
-      sunday.setHours(23,59,59,999);
-      const matchDate=new Date(m.date+"T00:00:00");
-      return matchDate>=friday&&matchDate<=sunday;
-    }).length===0 && (
-      <div style={{textAlign:"center",color:C.faint,padding:40,fontSize:14}}>
-        <div style={{fontSize:32,marginBottom:10}}>📊</div>
-        <div style={{fontWeight:700,color:C.muted}}>No results for this period</div>
-        <div style={{fontSize:12}}>Try adjusting filters or viewing all results.</div>
-      </div>
-    )}
-  </>
-)}
+            {resultMatches
+              .filter(m=>filterSport==="All"||m.sport===filterSport)
+              .filter(m=>{
+                if(showAllResults) return true;
+                // Filter to Friday-Sunday of the current week (past or present)
+                const today=new Date();
+                const day=today.getDay(); // 0=Sunday, 1=Monday, ...
+                
+                // Find the most recent Friday (or today if it's Friday)
+                let friday=new Date(today);
+                if (day === 5) {
+                  friday.setHours(0,0,0,0);
+                } else if (day < 5) {
+                  friday.setDate(today.getDate() - (day + 2));
+                  friday.setHours(0,0,0,0);
+                } else {
+                  friday.setDate(today.getDate() - (day - 5));
+                  friday.setHours(0,0,0,0);
+                }
+                
+                const sunday=new Date(friday);
+                sunday.setDate(friday.getDate()+2);
+                sunday.setHours(23,59,59,999);
+                const matchDate=new Date(m.date+"T00:00:00");
+                return matchDate>=friday&&matchDate<=sunday;
+              })
+              .map((m,i)=>(
+                <MatchCard key={i} m={m} lookupParticipant={lookupParticipant} official={official} view="results" />
+              ))
+            }
+            {resultMatches.filter(m=>filterSport==="All"||m.sport===filterSport).filter(m=>{
+              if(showAllResults) return true;
+              const today=new Date();
+              const day=today.getDay();
+              
+              let friday=new Date(today);
+              if (day === 5) {
+                friday.setHours(0,0,0,0);
+              } else if (day < 5) {
+                friday.setDate(today.getDate() - (day + 2));
+                friday.setHours(0,0,0,0);
+              } else {
+                friday.setDate(today.getDate() - (day - 5));
+                friday.setHours(0,0,0,0);
+              }
+              
+              const sunday=new Date(friday);
+              sunday.setDate(friday.getDate()+2);
+              sunday.setHours(23,59,59,999);
+              const matchDate=new Date(m.date+"T00:00:00");
+              return matchDate>=friday&&matchDate<=sunday;
+            }).length===0 && (
+              <div style={{textAlign:"center",color:C.faint,padding:40,fontSize:14}}>
+                <div style={{fontSize:32,marginBottom:10}}>📊</div>
+                <div style={{fontWeight:700,color:C.muted}}>No results for this period</div>
+                <div style={{fontSize:12}}>Try adjusting filters or viewing all results.</div>
+              </div>
+            )}
+          </>
+        )}
 
         {view==="admin"&&official&&(
           <div style={{marginTop:12}}>
@@ -1968,7 +2008,7 @@ useEffect(() => {
           <div style={{textAlign:"center",color:C.muted,padding:64,fontSize:14}}>
             <div style={{fontSize:48,marginBottom:12}}>🔐</div>
             <div style={{fontWeight:700,fontSize:16,color:C.ink}}>Admin access restricted</div>
-            <div style={{marginTop:6}}>Please log in using the button in the header.</div>
+            <div style={{marginTop:6}}>Triple-click the logo to login.</div>
           </div>
         )}
 
