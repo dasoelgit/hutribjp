@@ -1877,7 +1877,7 @@ export default function App() {
           />
           <div>
             <div style={{fontWeight:900,fontSize:16,color:C.ink,lineHeight:1.2}}>
-              HUT RI <span style={{color:#ED1C24}}>BJP</span> 2026
+              HUT RI <span style={{color:"#ED1C24"}}>BJP</span> 2026
             </div>
             <div style={{fontSize:9,color:C.muted,letterSpacing:0.8}}>INDONESIA BERDAULAT ADIL DAN MAKMUR</div>
           </div>
