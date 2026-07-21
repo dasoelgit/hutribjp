@@ -1285,7 +1285,7 @@ function MatchCard({ m, lookupParticipant, onClick, official, view = "schedule" 
         }}
       >
         <span style={{ width: 9, height: 9, borderRadius: 99, background: rtColor(rt), display: "inline-block", flexShrink: 0 }} />
-        {rt}
+        {isResults ? rt : rt.replace('RT ', '')}
       </span>
     );
   };
