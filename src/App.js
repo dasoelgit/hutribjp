@@ -1581,7 +1581,6 @@ export default function App() {
   const [filterKind, setFilterKind] = useState("All");
   const [editProgItem, setEditProgItem] = useState(null);
   const [searchQuery, setSearchQuery] = useState("");
-  const [bracketSport, setBracketSport] = useState("All");
 
   const [npForm, setNpForm] = useState({title:"",date:"",time:"09:00",venue:"",description:"",audience:"All"});
   const [toast, setToast] = useState(null);
@@ -2128,38 +2127,10 @@ export default function App() {
         )}
 
         {view==="bracket"&&(
-  <div style={{ marginTop: 12 }}>
-    {/* Sport filter for bracket */}
-    <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginBottom: 16 }}>
-      {["All", "Badminton", "Table Tennis", "Chess", "Domino"].map(sport => (
-        <button
-          key={sport}
-          onClick={() => setBracketSport(sport)}
-          style={{
-            padding: "4px 12px",
-            borderRadius: 99,
-            border: `1.5px solid ${bracketSport === sport ? C.red : C.border}`,
-            background: bracketSport === sport ? C.redFaint : C.white,
-            color: bracketSport === sport ? C.red : C.body,
-            fontWeight: bracketSport === sport ? 700 : 500,
-            fontSize: 12,
-            cursor: "pointer",
-            minHeight: 32,
-          }}
-        >
-          {sport === "All" ? "📋 Semua" : sport === "Table Tennis" ? "🏓 Tenis Meja" : sport === "Badminton" ? "🏸 Badminton" : sport === "Chess" ? "♟️ Catur" : "🀱 Gaple"}
-        </button>
-      ))}
-    </div>
-
-    <BracketHutri 
-      matches={allMatches().filter(m => 
-        bracketSport === "All" ? true : m.sport === bracketSport
-      )}
-      title={bracketSport === "All" ? "🏆 Semua Turnamen" : `${bracketSport === "Table Tennis" ? "Tenis Meja" : bracketSport === "Badminton" ? "Badminton" : bracketSport === "Chess" ? "Catur" : "Gaple"} Bracket`}
-    />
-  </div>
-)}
+              <div style={{ marginTop: 12 }}>
+                <BracketHutri matches={allMatches()} />
+              </div>
+            )}
 
         {view==="admin"&&official&&(
           <div style={{marginTop:12}}>
