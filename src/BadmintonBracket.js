@@ -53,7 +53,6 @@ const MatchNode = ({ match, label = "" }) => {
 
   const p1 = match.pA?.name || match.pA || 'TBD';
   const p2 = match.pB?.name || match.pB || 'TBD';
-  const winner = match.winnerName || match.result || null;
   const isFinished = match.status === 'finished';
   
   // Determine winner name
