@@ -1482,7 +1482,7 @@ function MatchCard({ m, lookupParticipant, onClick, official, view = "schedule" 
           justifyContent: "center"
         }}>
           {/* Player A */}
-          <div style={{ display: "flex", alignItems: "center", gap: 6, flex: "1 1 auto", minWidth: 0, justifyContent: "flex-end" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 6, flex: "1 1 auto", minWidth: 0 }}>
             <span
               style={{
                 fontSize: 15,
@@ -1505,7 +1505,7 @@ function MatchCard({ m, lookupParticipant, onClick, official, view = "schedule" 
           <Score />
 
           {/* Player B */}
-          <div style={{ display: "flex", alignItems: "center", gap: 6, flex: "1 1 auto", minWidth: 0, justifyContent: "flex-start" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 6, flex: "1 1 auto", minWidth: 0 }}>
             {res === 'B' && <span style={{ fontSize: 14, flexShrink: 0 }}>🏆</span>}
             <RtBadge rt={m.rtB} />
             <span
