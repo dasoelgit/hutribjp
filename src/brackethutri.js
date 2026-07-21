@@ -1,6 +1,7 @@
 // src/brackethutri.js
 import React, { useState } from 'react';
 import BadmintonBracket from './BadmintonBracket';
+import TableTennisBracket from './TableTennisBracket';
 
 // ─── STYLES ──────────────────────────────────────────────────────────────────
 const C = {
@@ -75,11 +76,9 @@ const BracketHutri = ({ matches }) => {
       {/* Sport-specific Bracket */}
       {selectedSport === 'badminton' || selectedSport === 'all' ? (
         <BadmintonBracket matches={filteredMatches} />
-      ) : selectedSport === 'tabletennis' ? (
-        <div style={{ textAlign: "center", padding: 40, color: C.muted }}>
-          🏓 Table Tennis bracket coming soon...
-        </div>
-      ) : selectedSport === 'chess' ? (
+        ) : selectedSport === 'tabletennis' ? (
+        <TableTennisBracket />
+        ) : selectedSport === 'chess' ? (
         <div style={{ textAlign: "center", padding: 40, color: C.muted }}>
           ♟️ Chess bracket coming soon...
         </div>
