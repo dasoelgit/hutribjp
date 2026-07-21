@@ -1871,9 +1871,9 @@ export default function App() {
           <img 
             src={LOGO_URL} 
             alt="BJP" 
-            style={{height:40,width:"auto",display:"block",cursor:"pointer"}} 
+            style={{height:40,width:"auto",display:"block",cursor:"pointer",borderRadius:8}} 
             onClick={handleLogoClick}
-            title="Triple-click to login"
+            title="HUT RI 81"
           />
           <div>
             <div style={{fontWeight:900,fontSize:16,color:C.ink,lineHeight:1.2}}>
