@@ -6,7 +6,6 @@ const PADEL_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIs
 
 const padelSupabase = createClient(PADEL_URL, PADEL_KEY);
 
-// Group IDs from the HTML
 const GROUP_IDS = {
   'A': 260247,
   'B': 260237,
@@ -18,15 +17,14 @@ const GROUP_IDS = {
 };
 
 const VENUE_NAMES = {
-  0: 'Timur Social Club',
-  1: 'Court Pavana',
+  0: 'Timur Social Club - Arka Court',
+  1: 'Timur Social Club - Pavana Court',
 };
 
 export async function fetchPadelMatches() {
   try {
     const allMatches = [];
     
-    // Fetch each group's rounds
     for (const [group, gameId] of Object.entries(GROUP_IDS)) {
       const { data, error } = await padelSupabase
         .rpc('get_game_rounds', { game_id: gameId });
