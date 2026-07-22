@@ -855,9 +855,58 @@ function ScoreModal({ match, onSave, onClose }) {
     status: match.status || "scheduled"
   });
 
+  const [error, setError] = useState(null);
+
   const handleSave = () => {
-    const sA = form.scoreA !== "" ? parseInt(form.scoreA) : null;
-    const sB = form.scoreB !== "" ? parseInt(form.scoreB) : null;
+    const sA = form.scoreA !== "" ? parseFloat(form.scoreA) : null;
+    const sB = form.scoreB !== "" ? parseFloat(form.scoreB) : null;
+    
+    // Clear previous error
+    setError(null);
+    
+    // ─── BASIC VALIDATION (All sports) ──────────────────────────────────
+    // Must be numbers
+    if (sA === null || sB === null || isNaN(sA) || isNaN(sB)) {
+      setError("Scores must be valid numbers");
+      return;
+    }
+    
+    // Cannot be negative
+    if (sA < 0 || sB < 0) {
+      setError("Scores cannot be negative");
+      return;
+    }
+    
+    // Cannot be equal (no draws in these sports)
+    if (sA === sB) {
+      setError("Scores cannot be equal");
+      return;
+    }
+    
+    // ─── DOMINO VALIDATION ──────────────────────────────────────────────
+    if (match.sport === "Domino" && form.status === "finished") {
+      const winnerScore = Math.max(sA, sB);
+      if (winnerScore < 200) {
+        setError("Domino: Winner must reach at least 200 points to mark as finished");
+        return;
+      }
+    }
+    
+    // ─── CHESS VALIDATION ──────────────────────────────────────────────
+    if (match.sport === "Chess" && form.status === "finished") {
+      // Chess scores must be 1-0, 0-1, or ½-½
+      const validScores = [0, 0.5, 1];
+      if (!validScores.includes(sA) || !validScores.includes(sB)) {
+        setError("Chess: Scores must be 1-0, 0-1, or ½-½ (use 0.5 for draw)");
+        return;
+      }
+      if (sA === sB && sA !== 0.5) {
+        setError("Chess: Only ½-½ is allowed for a draw");
+        return;
+      }
+    }
+    
+    // ─── SAVE ────────────────────────────────────────────────────────────
     onSave({
       ...match,
       scoreA: sA,
@@ -867,6 +916,7 @@ function ScoreModal({ match, onSave, onClose }) {
   };
 
   const isChess = match.sport === "Chess";
+  const isDomino = match.sport === "Domino";
 
   return (
     <div style={{
@@ -929,16 +979,17 @@ function ScoreModal({ match, onSave, onClose }) {
             <input
               type="number"
               min="0"
-              placeholder="0"
+              step={isChess ? "0.5" : "1"}
+              placeholder={isDomino ? "0" : "0"}
               value={form.scoreA}
-              onChange={e => setForm({ ...form, scoreA: e.target.value })}
+              onChange={e => { setForm({ ...form, scoreA: e.target.value }); setError(null); }}
               style={{
                 width: "100%",
                 padding: "14px 10px",
                 fontSize: 22,
                 fontWeight: 700,
                 textAlign: "center",
-                border: `2px solid ${C.border}`,
+                border: `2px solid ${error ? C.red : C.border}`,
                 borderRadius: 10,
                 background: C.white,
                 color: C.ink,
@@ -952,16 +1003,17 @@ function ScoreModal({ match, onSave, onClose }) {
             <input
               type="number"
               min="0"
-              placeholder="0"
+              step={isChess ? "0.5" : "1"}
+              placeholder={isDomino ? "0" : "0"}
               value={form.scoreB}
-              onChange={e => setForm({ ...form, scoreB: e.target.value })}
+              onChange={e => { setForm({ ...form, scoreB: e.target.value }); setError(null); }}
               style={{
                 width: "100%",
                 padding: "14px 10px",
                 fontSize: 22,
                 fontWeight: 700,
                 textAlign: "center",
-                border: `2px solid ${C.border}`,
+                border: `2px solid ${error ? C.red : C.border}`,
                 borderRadius: 10,
                 background: C.white,
                 color: C.ink,
@@ -972,6 +1024,51 @@ function ScoreModal({ match, onSave, onClose }) {
           </div>
         </div>
 
+        {/* ─── DOMINO HINT ────────────────────────────────────────────────── */}
+        {isDomino && (
+          <div style={{
+            fontSize: 11,
+            color: C.muted,
+            background: C.surface,
+            padding: "6px 12px",
+            borderRadius: 6,
+            marginBottom: 12,
+            textAlign: "center",
+          }}>
+            💡 Enter actual game scores (e.g., 200-120). Winner must reach 200+ to finish.
+          </div>
+        )}
+
+        {/* ─── CHESS HINT ────────────────────────────────────────────────── */}
+        {isChess && (
+          <div style={{
+            fontSize: 11,
+            color: C.muted,
+            background: C.surface,
+            padding: "6px 12px",
+            borderRadius: 6,
+            marginBottom: 12,
+            textAlign: "center",
+          }}>
+            💡 Use 1-0, 0-1, or ½-½ (use 0.5 for draw).
+          </div>
+        )}
+
+        {error && (
+          <div style={{
+            color: C.red,
+            fontSize: 13,
+            marginBottom: 12,
+            textAlign: "center",
+            background: C.redFaint,
+            padding: "8px 12px",
+            borderRadius: 8,
+            border: "1px solid #FECACA",
+          }}>
+            ⚠️ {error}
+          </div>
+        )}
+
         <div style={{ marginBottom: 16 }}>
           <label style={{ fontSize: 12, color: C.muted, fontWeight: 600, display: "block", marginBottom: 4 }}>Status</label>
           <div style={{ display: "flex", gap: 6 }}>
@@ -981,7 +1078,7 @@ function ScoreModal({ match, onSave, onClose }) {
               return (
                 <button
                   key={s}
-                  onClick={() => setForm({ ...form, status: s })}
+                  onClick={() => { setForm({ ...form, status: s }); setError(null); }}
                   style={{
                     flex: 1,
                     padding: "10px 6px",
