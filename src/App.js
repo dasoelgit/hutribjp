@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect } from "react";
 import { createClient } from '@supabase/supabase-js';
 import BracketHutri from './brackethutri';
+import { fetchPadelMatches } from './fetchPadel';
 
 const LOGO_URL = "/logo.jpg";
 
@@ -21,6 +22,7 @@ const DOMINO_TABLE = "hut_ri_bjp_2026_domino";
 const VENUES = {
   "Badminton": "GOR RW 011 BJP",
   "Table Tennis": "Lapangan Tenis Meja BJP",
+  "Padel": "Timur Social Club",
   "Chess": "Kantor RW 011",
   "Domino": "Gedung Serbaguna BJP",
 };
@@ -49,6 +51,7 @@ const C = {
 const SPORT_META = {
   "Badminton":            { emoji:"🏸", scoringType:"sets",    matchType:"doubles", bestOf:3,  pointsPerSet:21 },
   "Table Tennis":         { emoji:"🏓", scoringType:"sets",    matchType:"doubles", bestOf:5,  pointsPerSet:11 },
+  "Padel":                { emoji:"🎾", scoringType:"points",  matchType:"doubles", bestOf:1,  pointsPerSet:21 },
   "Chess":                { emoji:"♟️", scoringType:"chess",   matchType:"singles", bestOf:1 },
   "Domino":               { emoji:"🀱", scoringType:"points",  matchType:"doubles", bestOf:1 },
 };
@@ -58,6 +61,7 @@ const SPORTS = Object.keys(SPORT_META);
 const SPORT_DISPLAY = {
   "Badminton": "Badminton",
   "Table Tennis": "Tenis Meja",
+  "Padel": "Padel",
   "Chess": "Catur",
   "Domino": "Gaple",
 };
@@ -1752,6 +1756,7 @@ export default function App() {
   const [programEvents, setProgramEvents] = useState([]);
   const [badmintonMatches, setBadmintonMatches] = useState([]);
   const [ttMatches, setTtMatches] = useState([]);
+  const [padelMatches, setPadelMatches] = useState([]);
   const [chessMatches, setChessMatches] = useState([]);
   const [dominoMatches, setDominoMatches] = useState([]);
   const [scoreModal, setScoreModal] = useState(null);
@@ -1818,6 +1823,20 @@ export default function App() {
     console.log('Domino matches loaded:', data.length);
   };
 
+  // ─── LOAD PADEL DATA ──────────────────────────────────────────────────────
+useEffect(() => {
+  async function loadPadel() {
+    try {
+      const data = await fetchPadelMatches();
+      setPadelMatches(data);
+      console.log('Padel matches loaded:', data.length);
+    } catch (err) {
+      console.error('Padel load failed:', err);
+      setPadelMatches([]);
+    }
+  }
+  loadPadel();
+}, []);
   const loadPrograms = async () => {
   const data = await fetchProgramEvents();
   setProgramEvents(data);
@@ -1847,6 +1866,7 @@ export default function App() {
     const out = [];
     badmintonMatches.forEach(m => out.push({ ...m, kind: 'match' }));
     ttMatches.forEach(m => out.push({ ...m, kind: 'match' }));
+    padelMatches.forEach(m => out.push({ ...m, kind: 'match' }));
     chessMatches.forEach(m => out.push({ ...m, kind: 'match' }));
     dominoMatches.forEach(m => out.push({ ...m, kind: 'match' }));
     return out;
