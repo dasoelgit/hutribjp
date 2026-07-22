@@ -36,17 +36,6 @@ const BracketHutri = ({ matches }) => {
     return true;
   });
 
-  // Get display name for title
-  const getSportTitle = () => {
-    const map = {
-      'badminton': '🏸 Badminton Bracket',
-      'tabletennis': '🏓 Tenis Meja Bracket',
-      'chess': '♟️ Catur Bracket',
-      'domino': '🀱 Gaple Bracket',
-    };
-    return map[selectedSport] || 'Bracket';
-  };
-
   return (
     <div style={{ 
       background: C.bg, 
