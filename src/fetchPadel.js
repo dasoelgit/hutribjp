@@ -18,18 +18,19 @@ const GROUP_IDS = {
 };
 
 // ─── VENUE NAMES ────────────────────────────────────────────────────────────
-const VENUE_NAMES = {
-  0: 'Timur Social Club - Arka Court',
-  1: 'Timur Social Club - Pavana Court',
-};
+function getVenueName(courtId) {
+  if (courtId === 400034) return 'Timur Social Club - Arka Court';
+  if (courtId === 400035) return 'Timur Social Club - Pavana Court';
+  return 'Timur Social Club';
+}
 
 // ─── SCHEDULE CONFIG ──────────────────────────────────────────────────────
 const SCHEDULE = {
   groupOrder: ['F', 'G', 'A', 'B', 'C', 'D', 'E'],
   startTime: '08:00',
-  durationPerSession: 11, // minutes per round per group
+  durationPerSession: 11,
   roundsPerGroup: 6,
-  date: '2026-08-08', // Tournament date
+  date: '2026-08-08',
 };
 
 // ─── HELPERS ────────────────────────────────────────────────────────────────
@@ -103,7 +104,7 @@ export async function fetchPadelMatches() {
             round: `Group ${group} - Round ${roundNumber}`,
             date: baseDate,
             time: timeStr,
-            venue: VENUE_NAMES[match.court_id] || 'Timur Social Club',
+            venue: getVenueName(match.court_id),
             kind: 'match',
             _raw: match
           });
@@ -112,17 +113,6 @@ export async function fetchPadelMatches() {
     }
     
     console.log('✅ Padel matches fetched:', allMatches.length);
-    console.log('✅ Padel schedule sample (first 5):', allMatches
-      .filter(m => m.sport === 'Padel')
-      .sort((a, b) => a.time.localeCompare(b.time))
-      .slice(0, 5)
-      .map(m => ({ time: m.time, round: m.round }))
-    );
-    console.log('🔍 Padel venue sample:', allMatches.slice(0, 3).map(m => ({
-  venue: m.venue,
-  sport: m.sport,
-  court_id: m._raw?.court_id
-})));
     return allMatches;
   } catch (err) {
     console.error('❌ Error fetching Padel matches:', err);
