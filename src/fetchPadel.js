@@ -17,13 +17,6 @@ const GROUP_IDS = {
   'G': 260245,
 };
 
-// ─── VENUE NAMES ────────────────────────────────────────────────────────────
-function getVenueName(courtId) {
-  if (courtId === 400034) return 'Timur Social Club - Arka Court';
-  if (courtId === 400035) return 'Timur Social Club - Pavana Court';
-  return 'Timur Social Club';
-}
-
 // ─── SCHEDULE CONFIG ──────────────────────────────────────────────────────
 const SCHEDULE = {
   groupOrder: ['F', 'G', 'A', 'B', 'C', 'D', 'E'],
