@@ -118,6 +118,11 @@ export async function fetchPadelMatches() {
       .slice(0, 5)
       .map(m => ({ time: m.time, round: m.round }))
     );
+    console.log('🔍 Padel venue sample:', allMatches.slice(0, 3).map(m => ({
+  venue: m.venue,
+  sport: m.sport,
+  court_id: m._raw?.court_id
+})));
     return allMatches;
   } catch (err) {
     console.error('❌ Error fetching Padel matches:', err);
