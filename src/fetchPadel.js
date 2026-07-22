@@ -45,10 +45,14 @@ function minutesToTime(min) {
 }
 
 function getSessionTime(group, round) {
-  const groupIndex = SCHEDULE.groupOrder.indexOf(group);
-  const minutesBeforeGroup = groupIndex * SCHEDULE.roundsPerGroup * SCHEDULE.durationPerSession;
-  const roundOffset = (round - 1) * SCHEDULE.durationPerSession;
-  const totalMinutes = timeToMinutes(SCHEDULE.startTime) + minutesBeforeGroup + roundOffset;
+  const order = SCHEDULE.groupOrder;
+  const groupIndex = order.indexOf(group);
+  const pairIndex = Math.floor(groupIndex / 2);
+  const sessionsPerPair = SCHEDULE.roundsPerGroup * 2;
+  const sessionOffset = groupIndex % 2;
+  
+  const sessionIndex = (pairIndex * sessionsPerPair) + ((round - 1) * 2) + sessionOffset;
+  const totalMinutes = timeToMinutes(SCHEDULE.startTime) + sessionIndex * SCHEDULE.durationPerSession;
   return minutesToTime(totalMinutes);
 }
 
@@ -81,7 +85,6 @@ export async function fetchPadelMatches() {
           const aPlayers = (teamA.participants || []).map(p => p.name || 'TBD');
           const bPlayers = (teamB.participants || []).map(p => p.name || 'TBD');
           
-          // Only treat scores as valid if > 0 (0 means unplayed)
           const hasScoreA = teamA.score !== undefined && teamA.score !== null && teamA.score > 0;
           const hasScoreB = teamB.score !== undefined && teamB.score !== null && teamB.score > 0;
           
@@ -109,6 +112,12 @@ export async function fetchPadelMatches() {
     }
     
     console.log('✅ Padel matches fetched:', allMatches.length);
+    console.log('✅ Padel schedule sample (first 5):', allMatches
+      .filter(m => m.sport === 'Padel')
+      .sort((a, b) => a.time.localeCompare(b.time))
+      .slice(0, 5)
+      .map(m => ({ time: m.time, round: m.round }))
+    );
     return allMatches;
   } catch (err) {
     console.error('❌ Error fetching Padel matches:', err);
