@@ -6,6 +6,7 @@ const PADEL_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIs
 
 const padelSupabase = createClient(PADEL_URL, PADEL_KEY);
 
+// ─── GROUP IDs ──────────────────────────────────────────────────────────────
 const GROUP_IDS = {
   'A': 260247,
   'B': 260237,
@@ -16,14 +17,46 @@ const GROUP_IDS = {
   'G': 260245,
 };
 
+// ─── VENUE NAMES ────────────────────────────────────────────────────────────
 const VENUE_NAMES = {
   0: 'Timur Social Club - Arka Court',
   1: 'Timur Social Club - Pavana Court',
 };
 
+// ─── SCHEDULE CONFIG ──────────────────────────────────────────────────────
+const SCHEDULE = {
+  groupOrder: ['F', 'G', 'A', 'B', 'C', 'D', 'E'],
+  startTime: '08:00',
+  durationPerSession: 11, // minutes per round per group
+  roundsPerGroup: 6,
+  date: '2026-08-08', // Tournament date
+};
+
+// ─── HELPERS ────────────────────────────────────────────────────────────────
+function timeToMinutes(timeStr) {
+  const [h, m] = timeStr.split(':').map(Number);
+  return h * 60 + m;
+}
+
+function minutesToTime(min) {
+  const h = Math.floor(min / 60);
+  const m = min % 60;
+  return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
+}
+
+function getSessionTime(group, round) {
+  const groupIndex = SCHEDULE.groupOrder.indexOf(group);
+  const minutesBeforeGroup = groupIndex * SCHEDULE.roundsPerGroup * SCHEDULE.durationPerSession;
+  const roundOffset = (round - 1) * SCHEDULE.durationPerSession;
+  const totalMinutes = timeToMinutes(SCHEDULE.startTime) + minutesBeforeGroup + roundOffset;
+  return minutesToTime(totalMinutes);
+}
+
+// ─── FETCH FUNCTION ─────────────────────────────────────────────────────────
 export async function fetchPadelMatches() {
   try {
     const allMatches = [];
+    const baseDate = SCHEDULE.date;
     
     for (const [group, gameId] of Object.entries(GROUP_IDS)) {
       const { data, error } = await padelSupabase
@@ -39,6 +72,9 @@ export async function fetchPadelMatches() {
       data.forEach(round => {
         if (!round.matches) return;
         
+        const roundNumber = round.round_number;
+        const timeStr = getSessionTime(group, roundNumber);
+        
         round.matches.forEach(match => {
           const teamA = match.team_a || {};
           const teamB = match.team_b || {};
@@ -49,16 +85,16 @@ export async function fetchPadelMatches() {
           const scoreB = teamB.score !== undefined && teamB.score !== null ? teamB.score : null;
           
           allMatches.push({
-            id: `padel-${group}-r${round.round_number}-c${match.court_id || 0}`,
+            id: `padel-${group}-r${roundNumber}-c${match.court_id || 0}`,
             sport: 'Padel',
             pA: aPlayers.join(' / ') || 'TBD',
             pB: bPlayers.join(' / ') || 'TBD',
             scoreA: scoreA,
             scoreB: scoreB,
             status: (scoreA !== null && scoreB !== null) ? 'finished' : 'scheduled',
-            round: `Group ${group} - Round ${round.round_number}`,
-            date: null,
-            time: null,
+            round: `Group ${group} - Round ${roundNumber}`,
+            date: baseDate,
+            time: timeStr,
             venue: VENUE_NAMES[match.court_id] || 'Timur Social Club',
             kind: 'match',
             _raw: match
@@ -67,9 +103,10 @@ export async function fetchPadelMatches() {
       });
     }
     
+    console.log('✅ Padel matches fetched:', allMatches.length);
     return allMatches;
   } catch (err) {
-    console.error('Error fetching Padel matches:', err);
+    console.error('❌ Error fetching Padel matches:', err);
     return [];
   }
 }
