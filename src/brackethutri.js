@@ -55,7 +55,7 @@ const BracketHutri = ({ matches }) => {
             key={filter.id}
             onClick={() => setSelectedSport(filter.id)}
             style={{
-              padding: "4px 12px",
+              padding: "3px 8px",
               borderRadius: 99,
               border: `1.5px solid ${selectedSport === filter.id ? C.red : C.border}`,
               background: selectedSport === filter.id ? C.redFaint : C.white,
