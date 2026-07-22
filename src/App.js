@@ -88,7 +88,6 @@ const CLUBS_INIT = [
 
 const PLAYERS_INIT = [];
 const PAIRS_INIT = [];
-const seedProgram = () => [];
 
 // ─── HELPERS ────────────────────────────────────────────────────────────────
 const fmtDate = d => { 
