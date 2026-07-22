@@ -1775,7 +1775,7 @@ export default function App() {
   ...scheduleMatches.map(m => ({...m, _date: m.date, _time: m.time || ""})),
   ...programEvents.map(e => ({...e, _date: e.date, _time: e.time || ""})),
 ].filter(item => {
-  // ─── 1. KIND FILTER (Highest Priority) ────────────────────────────────
+  // ─── 1. KIND FILTER ────────────────────────────────────────────────────
   if (filterKind === "match" && item.kind !== "match") return false;
   if (filterKind === "program" && item.kind !== "program") return false;
   
@@ -1783,7 +1783,7 @@ export default function App() {
   if (item.kind === "match") {
     if (filterSport !== "All" && item.sport !== filterSport) return false;
   }
-  // Programs are NOT filtered by sport - they only use kind filter
+  // ✅ Programs pass through - no sport filter applied
   
   // ─── 3. SEARCH FILTER ──────────────────────────────────────────────────
   if (searchQuery.trim() !== "") {
@@ -1795,6 +1795,7 @@ export default function App() {
         return false;
       }
     } else {
+      // Programs: search in title and description
       if (!(item.title || '').toLowerCase().includes(q) && 
           !(item.description || '').toLowerCase().includes(q)) {
         return false;
@@ -1803,7 +1804,8 @@ export default function App() {
   }
   
   return true;
-}).sort((a, b) => a._date.localeCompare(b._date) || a._time.localeCompare(b._time));
+}).sort((a, b) => a._date.localeCompare(b._date) || a._time.localeCompare(b._time));  
+  
   const grouped = allScheduleItems.reduce((acc,item)=>{
     if(!acc[item._date]) acc[item._date]=[];
     acc[item._date].push(item); return acc;
