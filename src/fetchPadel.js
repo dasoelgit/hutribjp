@@ -104,7 +104,9 @@ export async function fetchPadelMatches() {
             round: `Group ${group} - Round ${roundNumber}`,
             date: baseDate,
             time: timeStr,
-            venue: getVenueName(match.court_id),
+            venue: match.court_id === 400034 ? 'Timur Social Club - Arka Court' 
+                 : match.court_id === 400035 ? 'Timur Social Club - Pavana Court' 
+                 : 'Timur Social Club',
             kind: 'match',
             _raw: match
           });
