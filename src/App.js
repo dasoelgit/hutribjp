@@ -1741,7 +1741,7 @@ function MatchCard({ m, lookupParticipant, onClick, official, view = "schedule" 
           <span>📅 {m.date ? fmtDateWithYear(m.date) : "—"}</span>
           <span>🕐 {m.time ? fmtTime(m.time) : "—"}</span>
         </div>
-        <div>📍 {m.venue || "—"}</div>
+        <div>📍 {m.sport === 'Padel' ? m.venue : (m.venue || "—")}</div>
       </div>
     </div>
   );
