@@ -706,6 +706,101 @@ async function addSportMatch(table, match) {
   }
 }
 
+// ─── PROGRAM EVENTS CRUD ──────────────────────────────────────────────────
+
+// Fetch all program events
+async function fetchProgramEvents() {
+  try {
+    const { data, error } = await sportsSupabase
+      .from('program_events')
+      .select('*')
+      .order('date', { ascending: true })
+      .order('time', { ascending: true });
+
+    if (error) {
+      console.error('Error fetching programs:', error);
+      return [];
+    }
+    return data || [];
+  } catch (err) {
+    console.error('Error:', err);
+    return [];
+  }
+}
+
+// Add a program event
+async function addProgramEvent(event) {
+  try {
+    const { data, error } = await sportsSupabase
+      .from('program_events')
+      .insert([{
+        title: event.title,
+        date: event.date,
+        time: event.time || null,
+        venue: event.venue || null,
+        description: event.description || null,
+        audience: event.audience || 'All'
+      }])
+      .select();
+
+    if (error) {
+      console.error('Error adding program:', error);
+      return null;
+    }
+    return data?.[0] || null;
+  } catch (err) {
+    console.error('Error:', err);
+    return null;
+  }
+}
+
+// Update a program event
+async function updateProgramEvent(id, updates) {
+  try {
+    const { data, error } = await sportsSupabase
+      .from('program_events')
+      .update({
+        title: updates.title,
+        date: updates.date,
+        time: updates.time || null,
+        venue: updates.venue || null,
+        description: updates.description || null,
+        audience: updates.audience || 'All',
+        updated_at: new Date().toISOString()
+      })
+      .eq('id', id)
+      .select();
+
+    if (error) {
+      console.error('Error updating program:', error);
+      return null;
+    }
+    return data?.[0] || null;
+  } catch (err) {
+    console.error('Error:', err);
+    return null;
+  }
+}
+
+// Delete a program event
+async function deleteProgramEvent(id) {
+  try {
+    const { error } = await sportsSupabase
+      .from('program_events')
+      .delete()
+      .eq('id', id);
+
+    if (error) {
+      console.error('Error deleting program:', error);
+      return false;
+    }
+    return true;
+  } catch (err) {
+    console.error('Error:', err);
+    return false;
+  }
+}
+
 // ─── STATUS CONFIG ──────────────────────────────────────────────────────────
 const STATUS = {
   scheduled:{ text:"#1E40AF", bg:"#EFF6FF", border:"#BFDBFE", label:"Scheduled" },
@@ -1655,21 +1750,12 @@ export default function App() {
   const [clubs] = useState(CLUBS_INIT);
   const [players] = useState(PLAYERS_INIT);
   const [pairs] = useState(PAIRS_INIT);
-  const [programEvents, setProgramEvents] = useState(() => {
-    try {
-      const saved = localStorage.getItem("hutribjp_program");
-      return saved ? JSON.parse(saved) : seedProgram();
-    } catch { return seedProgram(); }
-  });
+  const [programEvents, setProgramEvents] = useState([]);
   const [badmintonMatches, setBadmintonMatches] = useState([]);
   const [ttMatches, setTtMatches] = useState([]);
   const [chessMatches, setChessMatches] = useState([]);
   const [dominoMatches, setDominoMatches] = useState([]);
   const [scoreModal, setScoreModal] = useState(null);
-
-  useEffect(() => {
-    try { localStorage.setItem("hutribjp_program", JSON.stringify(programEvents)); } catch {}
-  }, [programEvents]);
 
   const [view, setView] = useState("schedule");
   const [showAllResults, setShowAllResults] = useState(false);
@@ -1683,7 +1769,6 @@ export default function App() {
   const [toast, setToast] = useState(null);
   const [official, setOfficial] = useState(null);
   const [showLogin, setShowLogin] = useState(false);
-  const progIdRef = useRef(10);
   const logoClickCount = useRef(0);
   const logoClickTimer = useRef(null);
 
@@ -1734,9 +1819,16 @@ export default function App() {
     console.log('Domino matches loaded:', data.length);
   };
 
+  const loadPrograms = async () => {
+  const data = await fetchProgramEvents();
+  setProgramEvents(data);
+  console.log('Programs loaded:', data.length);
+  };
+  
   useEffect(() => {
     loadChess();
     loadDomino();
+    loadPrograms();
   }, []);
 
   const showToast = (msg, type="success") => { setToast({msg,type}); setTimeout(()=>setToast(null),3000); };
@@ -1812,20 +1904,40 @@ export default function App() {
   },{});
 
   // ── Program event helpers ─────────────────────────────────────────────────
-  const handleAddProgram = () => {
-    if(!npForm.title.trim()){showToast("Enter a title","error");return;}
-    if(!npForm.date){showToast("Set a date","error");return;}
-    const id=`p${progIdRef.current++}`;
-    setProgramEvents(p=>[...p,{id,kind:"program",...npForm,title:npForm.title.trim()}]);
+  const handleAddProgram = async () => {
+  if(!npForm.title.trim()){showToast("Enter a title","error");return;}
+  if(!npForm.date){showToast("Set a date","error");return;}
+  
+  const newEvent = {
+    title: npForm.title.trim(),
+    date: npForm.date,
+    time: npForm.time || null,
+    venue: npForm.venue || null,
+    description: npForm.description || null,
+    audience: npForm.audience || 'All'
+  };
+  
+  const result = await addProgramEvent(newEvent);
+  if (result) {
+    setProgramEvents(p => [...p, { ...result, kind: 'program' }]);
     setNpForm({title:"",date:"",time:"09:00",venue:"",description:"",audience:"All"});
     showToast("Program event added!");
-  };
-
-  const handleSaveProgram = (form) => {
-    setProgramEvents(p=>p.map(e=>e.id===form.id?{...e,...form}:e));
-    setEditProgItem(null); showToast("Event updated!");
-  };
-
+  } else {
+    showToast("Failed to add program event", "error");
+  }
+};
+  
+  const handleSaveProgram = async (form) => {
+  const result = await updateProgramEvent(form.id, form);
+  if (result) {
+    setProgramEvents(p => p.map(e => e.id === form.id ? { ...result, kind: 'program' } : e));
+    setEditProgItem(null);
+    showToast("Event updated!");
+  } else {
+    showToast("Failed to update program event", "error");
+  }
+};
+  
   // ── Sport management handlers ─────────────────────────────────────────────
   const handleChessAdd = async (form) => {
     const result = await addSportMatch(CHESS_TABLE, form);
@@ -2298,7 +2410,17 @@ export default function App() {
                         </div>
                         <div style={{display:"flex",gap:4}}>
                           <button onClick={()=>setEditProgItem(e)} style={{fontSize:13,padding:"4px 10px",borderRadius:6,border:`1.5px solid ${C.border}`,background:C.white,cursor:"pointer",minHeight:36}}>✏️</button>
-                          <button onClick={()=>{if(window.confirm("Delete?")){setProgramEvents(p=>p.filter(x=>x.id!==e.id));showToast("Event deleted!");}}} style={{fontSize:13,padding:"4px 10px",borderRadius:6,border:"1.5px solid #FECACA",background:C.redFaint,color:C.red,cursor:"pointer",minHeight:36}}>🗑</button>
+                          <button onClick={async () => {
+  if(window.confirm("Delete?")) {
+    const deleted = await deleteProgramEvent(e.id);
+    if (deleted) {
+      setProgramEvents(p => p.filter(x => x.id !== e.id));
+      showToast("Event deleted!");
+    } else {
+      showToast("Failed to delete event", "error");
+    }
+  }
+}}> style={{fontSize:13,padding:"4px 10px",borderRadius:6,border:"1.5px solid #FECACA",background:C.redFaint,color:C.red,cursor:"pointer",minHeight:36}}>🗑</button>
                         </div>
                       </div>
                     ))}
