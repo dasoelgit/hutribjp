@@ -2175,7 +2175,7 @@ export default function App() {
               transition:"all 0.15s"
             }}
           >
-            {k==="All" ? "📋 Semua" : k==="match" ? "🏟️ Pertandingan" : "📅 Acara"}
+            {k==="All" ? "✔️" : k==="match" ? "🏟️ Pertandingan" : "📅 Acara"}
           </button>
         ))}
         
@@ -2242,7 +2242,7 @@ export default function App() {
                 gap:3
               }}
             >
-              {s==="All" ? "📋 Semua" : `${SPORT_META[s]?.emoji || ''} ${SPORT_DISPLAY[s]||s}`}
+              {s==="All" ? "✔️" : `${SPORT_META[s]?.emoji || ''} ${SPORT_DISPLAY[s]||s}`}
             </button>
           ))}
         </div>
@@ -2255,9 +2255,6 @@ export default function App() {
         {view==="results"&&(
           <>
             <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",flexWrap:"wrap",gap:10,marginBottom:16}}>
-              <div>
-                <h2 style={{fontSize:20,fontWeight:800,color:C.ink,margin:0}}>🏆 Hasil Pertandingan</h2>
-              </div>
               <button onClick={()=>setShowAllResults(!showAllResults)} style={{...ghostBtn(showAllResults),fontSize:12,minHeight:36,padding:"6px 14px"}}>
                 {showAllResults?"Tampilkan Hasil Minggu Ini":"Tampilkan Semua Tanggal"}
               </button>
