@@ -56,7 +56,7 @@ function getSessionTime(group, round) {
 export async function fetchPadelMatches() {
   try {
     const allMatches = [];
-    const baseDate = SCHEDULE.date;
+    const baseDate = SCHEDULE.date || '2026-08-08';
     
     for (const [group, gameId] of Object.entries(GROUP_IDS)) {
       const { data, error } = await padelSupabase
@@ -81,8 +81,13 @@ export async function fetchPadelMatches() {
           const aPlayers = (teamA.participants || []).map(p => p.name || 'TBD');
           const bPlayers = (teamB.participants || []).map(p => p.name || 'TBD');
           
-          const scoreA = teamA.score !== undefined && teamA.score !== null ? teamA.score : null;
-          const scoreB = teamB.score !== undefined && teamB.score !== null ? teamB.score : null;
+          // Only treat scores as valid if > 0 (0 means unplayed)
+          const hasScoreA = teamA.score !== undefined && teamA.score !== null && teamA.score > 0;
+          const hasScoreB = teamB.score !== undefined && teamB.score !== null && teamB.score > 0;
+          
+          const scoreA = hasScoreA ? teamA.score : null;
+          const scoreB = hasScoreB ? teamB.score : null;
+          const isFinished = hasScoreA && hasScoreB;
           
           allMatches.push({
             id: `padel-${group}-r${roundNumber}-c${match.court_id || 0}`,
@@ -91,7 +96,7 @@ export async function fetchPadelMatches() {
             pB: bPlayers.join(' / ') || 'TBD',
             scoreA: scoreA,
             scoreB: scoreB,
-            status: (scoreA !== null && scoreB !== null) ? 'finished' : 'scheduled',
+            status: isFinished ? 'finished' : 'scheduled',
             round: `Group ${group} - Round ${roundNumber}`,
             date: baseDate,
             time: timeStr,
