@@ -61,9 +61,9 @@ const BracketHutri = ({ matches }) => {
               background: selectedSport === filter.id ? C.redFaint : C.white,
               color: selectedSport === filter.id ? C.red : C.body,
               fontWeight: selectedSport === filter.id ? 700 : 500,
-              fontSize: 12,
+              fontSize: 10,
               cursor: "pointer",
-              minHeight: 32,
+              minHeight: 26,
             }}
           >
             {filter.label}
