@@ -20,11 +20,40 @@ const C = {
   gold: "#C8960C",
 };
 
-// ─── HELPER: Calculate Standings ──────────────────────────────────────────
-function calculateStandings(matches) {
+// ─── HELPER: Get All Teams from Schedule ──────────────────────────────────
+function getAllTeams(matches) {
   const teams = {};
+  matches.forEach(match => {
+    if (match.pA) {
+      teams[match.pA] = { name: match.pA, rt: match.rtA || '' };
+    }
+    if (match.pB) {
+      teams[match.pB] = { name: match.pB, rt: match.rtB || '' };
+    }
+  });
+  return Object.values(teams);
+}
+
+// ─── HELPER: Calculate Standings ──────────────────────────────────────────
+function calculateStandings(matches, allTeams) {
+  const stats = {};
+  
+  // Initialize all teams with 0 stats
+  allTeams.forEach(team => {
+    stats[team.name] = {
+      name: team.name,
+      rt: team.rt || '',
+      wins: 0,
+      losses: 0,
+      points: 0,
+      diff: 0,
+      played: 0,
+    };
+  });
+  
   const headToHead = {};
   
+  // Process only finished matches
   matches.forEach(match => {
     if (match.status !== 'finished' || match.scoreA === null || match.scoreB === null) return;
     
@@ -32,35 +61,29 @@ function calculateStandings(matches) {
     const teamB = match.pB;
     const scoreA = match.scoreA;
     const scoreB = match.scoreB;
-    const rtA = match.rtA || '';
-    const rtB = match.rtB || '';
     
-    if (!teams[teamA]) {
-      teams[teamA] = { name: teamA, rt: rtA, wins: 0, losses: 0, points: 0, diff: 0, played: 0 };
-    }
-    if (!teams[teamB]) {
-      teams[teamB] = { name: teamB, rt: rtB, wins: 0, losses: 0, points: 0, diff: 0, played: 0 };
-    }
+    if (!stats[teamA] || !stats[teamB]) return;
     
     if (scoreA > scoreB) {
-      teams[teamA].wins += 1;
-      teams[teamA].points += 2;
-      teams[teamB].losses += 1;
+      stats[teamA].wins += 1;
+      stats[teamA].points += 2;
+      stats[teamB].losses += 1;
       headToHead[`${teamA}|||${teamB}`] = teamA;
     } else if (scoreB > scoreA) {
-      teams[teamB].wins += 1;
-      teams[teamB].points += 2;
-      teams[teamA].losses += 1;
+      stats[teamB].wins += 1;
+      stats[teamB].points += 2;
+      stats[teamA].losses += 1;
       headToHead[`${teamA}|||${teamB}`] = teamB;
     }
     
-    teams[teamA].diff += (scoreA - scoreB);
-    teams[teamB].diff += (scoreB - scoreA);
-    teams[teamA].played += 1;
-    teams[teamB].played += 1;
+    stats[teamA].diff += (scoreA - scoreB);
+    stats[teamB].diff += (scoreB - scoreA);
+    stats[teamA].played += 1;
+    stats[teamB].played += 1;
   });
   
-  const sorted = Object.values(teams).sort((a, b) => {
+  // Sort
+  const sorted = Object.values(stats).sort((a, b) => {
     if (b.points !== a.points) return b.points - a.points;
     if (b.diff !== a.diff) return b.diff - a.diff;
     const h2hKey = `${a.name}|||${b.name}`;
@@ -75,12 +98,16 @@ function calculateStandings(matches) {
 
 // ─── MAIN COMPONENT ─────────────────────────────────────────────────────────
 const DominoStandings = ({ matches }) => {
+  // Filter only Domino Round Robin matches
   const rrMatches = matches.filter(m => 
     m.sport === 'Domino' && 
     m.round && m.round.toLowerCase().includes('round')
   );
   
-  const standings = calculateStandings(rrMatches);
+  // Get all teams from the schedule
+  const allTeams = getAllTeams(rrMatches);
+  const standings = calculateStandings(rrMatches, allTeams);
+  
   const totalMatches = rrMatches.length;
   const finishedMatches = rrMatches.filter(m => m.status === 'finished').length;
   
@@ -139,7 +166,7 @@ const DominoStandings = ({ matches }) => {
               </tr>
             </thead>
             <tbody>
-              {/* ─── TOP 2 (Gold & Silver) ────────────────────────────────── */}
+              {/* ─── TOP 2 ──────────────────────────────────────────────────── */}
               {top2.map((team, index) => {
                 const isFirst = index === 0;
                 return (
@@ -147,11 +174,7 @@ const DominoStandings = ({ matches }) => {
                     borderBottom: `1px solid ${C.border}`,
                     background: isFirst ? `linear-gradient(135deg, #FFF8E7, #FFEECC)` : `linear-gradient(135deg, #F5F7F9, #E8ECF0)`,
                   }}>
-                    <td style={{ 
-                      padding: '10px 8px', 
-                      textAlign: 'center', 
-                      fontSize: 20,
-                    }}>
+                    <td style={{ padding: '10px 8px', textAlign: 'center', fontSize: 20 }}>
                       {isFirst ? '🥇' : '🥈'}
                     </td>
                     <td style={{ padding: '10px 8px', textAlign: 'left', fontWeight: 700 }}>
@@ -238,7 +261,7 @@ const DominoStandings = ({ matches }) => {
       }}>
         <span>🏅 Peringkat berdasarkan: Poin → Selisih Skor → Head-to-Head</span>
         <span>• Win = 2 poin, Loss = 0 poin</span>
-        <span>• Penentuan 🥇 Juara 1 & 🥈 Juara 2 bersifat mutlak berdasarkan hasil klasemen.</span>
+        <span>• Penentuan 🥇 Juara 1 & 🥈 Juara 2 bersifat mutlak berdasarkan hasil klasemen</span>
       </div>
     </div>
   );
