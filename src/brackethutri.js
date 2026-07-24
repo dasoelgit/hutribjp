@@ -2,6 +2,7 @@
 import React, { useState } from 'react';
 import BadmintonBracket from './BadmintonBracket';
 import TableTennisBracket from './TableTennisBracket';
+import DominoStandings from './DominoStandings';
 
 // ─── STYLES ──────────────────────────────────────────────────────────────────
 const C = {
@@ -96,18 +97,7 @@ const BracketHutri = ({ matches }) => {
       )}
       
       {selectedSport === 'domino' && (
-        <div style={{ 
-          textAlign: "center", 
-          padding: 48, 
-          color: C.muted,
-          background: C.white,
-          borderRadius: 12,
-          border: `1.5px solid ${C.border}`,
-        }}>
-          <div style={{ fontSize: 32, marginBottom: 12 }}>🀱</div>
-          <div style={{ fontSize: 16, fontWeight: 600, color: C.body }}>Domino Bracket</div>
-          <div style={{ fontSize: 13, marginTop: 4 }}>Coming soon...</div>
-        </div>
+        <DominoStandings matches={matches} />
       )}
     </div>
   );
